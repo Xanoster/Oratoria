@@ -118,9 +118,14 @@ model Sentence {
   srsStates        SRSState[]
   speakingAttempts SpeakingAttempt[]
   lessonSentences  LessonSentence[]
+  
+  // Direct scenario link for performance/progress tracking
+  roleplayScenario   RoleplayScenario? @relation(fields: [roleplayScenarioId], references: [id])
+  roleplayScenarioId String?
 
   @@index([cefrLevel])
   @@index([publishedAt])
+  @@index([roleplayScenarioId])
 }
 
 // =============================================================================
@@ -332,6 +337,12 @@ model RoleplayScenario {
   narrativeNodeId String
   narrativeNode   NarrativeNode @relation(fields: [narrativeNodeId], references: [id], onDelete: Cascade)
   
+  // Visualization
+  title           String        @default("Untitled Scenario")
+  description     String        @default("Description coming soon...")
+  icon            String        @default("📚")
+  orderIndex      Int           @default(0)
+
   // Fixed persona (no free-form chat per constitution)
   persona         String   // e.g., "Bürgeramt clerk", "baker", "colleague"
   personaPrompt   String   // System prompt for LLM
@@ -346,9 +357,13 @@ model RoleplayScenario {
   // Allowed turns (difficulty lever)
   maxTurns        Int      @default(6)
   
-  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  // Relations
+  sentences       Sentence[]
 
   @@index([narrativeNodeId])
+  @@index([orderIndex])
 }
 
 // =============================================================================

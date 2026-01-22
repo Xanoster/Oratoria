@@ -18,91 +18,57 @@ export async function GET(request: NextRequest) {
                 orderIndex: 'asc'
             },
             include: {
-                _count: {
-                    select: {
-                        sentences: true
+                sentences: {
+                    include: {
+                        srsStates: {
+                            where: {
+                                userId: user.id
+                            }
+                        }
                     }
                 }
             }
         });
 
-        // Get user's progress for each scenario
-        const scenariosWithProgress = await Promise.all(
-            scenarios.map(async (scenario) => {
-                // Count completed sentences for this scenario
-                const completedCount = await prisma.sRSState.count({
-                    where: {
-                        userId: user.id,
-                        sentence: {
-                            lessonSentences: {
-                                some: {
-                                    lesson: {
-                                        narrativeNodes: {
-                                            some: {
-                                                roleplayScenarioId: scenario.id
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        repetitions: {
-                            gte: 3 // Consider mastered after 3 successful repetitions
-                        }
-                    }
-                });
+        // Map scenarios to roadmap format
+        const scenariosWithProgress = scenarios.map((scenario) => {
+            const totalSentences = scenario.sentences.length;
+            // A sentence is considered mastered if repetitions >= 3
+            const completedSentences = scenario.sentences.filter(s =>
+                s.srsStates.some(state => state.repetitions >= 3)
+            ).length;
 
-                const totalSentences = scenario._count.sentences || 0;
-                const completedSentences = completedCount;
+            // Determine status based on progress
+            let status: 'completed' | 'active' | 'locked';
 
-                // Determine status based on progress
-                let status: 'completed' | 'active' | 'locked';
-
-                if (completedSentences >= totalSentences && totalSentences > 0) {
-                    status = 'completed';
-                } else if (completedSentences > 0 || scenario.orderIndex === 0) {
-                    status = 'active';
+            if (completedSentences >= totalSentences && totalSentences > 0) {
+                status = 'completed';
+            } else if (completedSentences > 0 || scenario.orderIndex === 0) {
+                status = 'active';
+            } else {
+                // Check if previous scenario is completed
+                const previousScenario = scenarios.find(s => s.orderIndex === scenario.orderIndex - 1);
+                if (previousScenario) {
+                    const prevTotal = previousScenario.sentences.length;
+                    const prevCompleted = previousScenario.sentences.filter(s =>
+                        s.srsStates.some(state => state.repetitions >= 3)
+                    ).length;
+                    status = (prevCompleted >= prevTotal && prevTotal > 0) ? 'active' : 'locked';
                 } else {
-                    // Check if previous scenario is completed
-                    const previousScenario = scenarios.find(s => s.orderIndex === scenario.orderIndex - 1);
-                    if (previousScenario) {
-                        const prevCompleted = await prisma.sRSState.count({
-                            where: {
-                                userId: user.id,
-                                sentence: {
-                                    lessonSentences: {
-                                        some: {
-                                            lesson: {
-                                                narrativeNodes: {
-                                                    some: {
-                                                        roleplayScenarioId: previousScenario.id
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                },
-                                repetitions: { gte: 3 }
-                            }
-                        });
-                        const prevTotal = previousScenario._count.sentences || 0;
-                        status = (prevCompleted >= prevTotal && prevTotal > 0) ? 'active' : 'locked';
-                    } else {
-                        status = 'locked';
-                    }
+                    status = 'locked';
                 }
+            }
 
-                return {
-                    id: scenario.id,
-                    title: scenario.title,
-                    description: scenario.description,
-                    status,
-                    totalSentences,
-                    completedSentences,
-                    icon: scenario.icon || '📚'
-                };
-            })
-        );
+            return {
+                id: scenario.id,
+                title: scenario.title,
+                description: scenario.description,
+                status,
+                totalSentences,
+                completedSentences,
+                icon: scenario.icon || '📚'
+            };
+        });
 
         return NextResponse.json({
             scenarios: scenariosWithProgress
