@@ -24,17 +24,14 @@ export default function LandingPage() {
       <div className="max-w-7xl mx-auto px-6 py-20 md:py-32 flex flex-col md:flex-row items-center gap-12">
         <div className="flex-1 space-y-8 text-center md:text-left">
           <h1 className="font-serif text-5xl md:text-7xl font-bold text-[#2d1b0e] leading-tight">
-            Speak German with <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c17767] to-[#8b5e3c]">Confidence</span>
+            Learn German with <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c17767] to-[#8b5e3c]">Confidence</span>
           </h1>
           <p className="text-xl text-[#5c4a3a] max-w-lg mx-auto md:mx-0">
             The AI language tutor that listens, corrects, and helps you master pronunciation through real conversation.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
             <Link href="/signup">
-              <Button size="lg" className="shadow-xl shadow-[#c17767]/20">Start Speaking Free</Button>
-            </Link>
-            <Link href="/lesson">
-              <Button variant="secondary" size="lg">Try Demo Lesson</Button>
+              <Button size="lg" className="shadow-xl shadow-[#c17767]/20">Start Learning Free</Button>
             </Link>
           </div>
           <div className="flex items-center justify-center md:justify-start gap-6 pt-4 text-[#8b7355] text-sm font-medium">
