@@ -125,17 +125,30 @@ export default function LearningSession({
         setIsAnalyzing(true);
 
         try {
-            const { isCorrect, errors } = await checkAnswer();
+            const result = await checkAnswer();
 
-            if (isCorrect) {
+            if (result.isCorrect) {
                 // Correct answer - log and move on
-                await onItemComplete(currentItem.id, 1, outputType);
-                moveToNext();
+                await onItemComplete(currentItem.id, result.quality, outputType);
+                // Small delay for user to see success, then move
+                setTimeout(() => {
+                    moveToNext();
+                }, 800);
             } else {
                 // Incorrect - show Grammar Doctor
-                setErrors(errors);
+                setErrors(result.errors);
                 setShowGrammarDoctor(true);
             }
+        } catch (error) {
+            console.error('Error checking answer:', error);
+            // On error, treat as incorrect and show basic error
+            setErrors([{
+                type: 'SPELLING',
+                expected: currentItem.sentence.germanText,
+                actual: userInput,
+                explanation: 'Unable to check answer. Please try again.'
+            }]);
+            setShowGrammarDoctor(true);
         } finally {
             setIsAnalyzing(false);
         }
@@ -156,7 +169,7 @@ export default function LearningSession({
         // Move to next after a short delay
         setTimeout(() => {
             moveToNext();
-        }, 1500);
+        }, 1000);
     };
 
     const moveToNext = () => {

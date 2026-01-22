@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        // Map scenarios to roadmap format
+        // Map scenarios to roadmap format  
         const scenariosWithProgress = scenarios.map((scenario) => {
             const totalSentences = scenario.sentences.length;
             // A sentence is considered mastered if repetitions >= 3
@@ -38,26 +38,13 @@ export async function GET(request: NextRequest) {
                 s.srsStates.some(state => state.repetitions >= 3)
             ).length;
 
-            // Determine status based on progress
-            let status: 'completed' | 'active' | 'locked';
+            // All scenarios are available - no locking
+            const status = (completedSentences >= totalSentences && totalSentences > 0)
+                ? 'completed'
+                : 'available';
 
-            if (completedSentences >= totalSentences && totalSentences > 0) {
-                status = 'completed';
-            } else if (completedSentences > 0 || scenario.orderIndex === 0) {
-                status = 'active';
-            } else {
-                // Check if previous scenario is completed
-                const previousScenario = scenarios.find(s => s.orderIndex === scenario.orderIndex - 1);
-                if (previousScenario) {
-                    const prevTotal = previousScenario.sentences.length;
-                    const prevCompleted = previousScenario.sentences.filter(s =>
-                        s.srsStates.some(state => state.repetitions >= 3)
-                    ).length;
-                    status = (prevCompleted >= prevTotal && prevTotal > 0) ? 'active' : 'locked';
-                } else {
-                    status = 'locked';
-                }
-            }
+            // Check if recommended for user's level
+            const isRecommended = scenario.cefrLevel === user.cefrLevel;
 
             return {
                 id: scenario.id,
@@ -66,7 +53,9 @@ export async function GET(request: NextRequest) {
                 status,
                 totalSentences,
                 completedSentences,
-                icon: scenario.icon || '📚'
+                icon: scenario.icon || '📚',
+                recommended: isRecommended,
+                cefrLevel: scenario.cefrLevel
             };
         });
 

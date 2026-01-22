@@ -166,7 +166,7 @@ export default function RoleplayPage() {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-[#faf8f5] max-w-lg mx-auto shadow-2xl overflow-hidden">
+        <div className="flex flex-col h-screen bg-[#faf8f5] max-w-4xl mx-auto shadow-2xl overflow-hidden">
             {/* Header */}
             <header className="bg-white border-b border-[#e2e8f0] p-4 flex items-center justify-between z-10">
                 <div className="flex items-center gap-3">
