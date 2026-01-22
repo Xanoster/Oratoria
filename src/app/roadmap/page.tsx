@@ -111,7 +111,7 @@ export default function RoadmapPage() {
 
                                     <div>
                                         {node.status === 'active' ? (
-                                            <Link href="/lesson">
+                                            <Link href="/roleplay/demo">
                                                 <Button size="sm" className="w-full">Continue Journey</Button>
                                             </Link>
                                         ) : node.status === 'completed' ? (
