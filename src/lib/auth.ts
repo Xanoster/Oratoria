@@ -1,25 +1,34 @@
-import prisma from '@/lib/db';
+import { auth } from "@/lib/auth.config";
+import prisma from "@/lib/db";
 
 /**
- * Get the current user or create a default guest user.
- * For MVP, we operate in single-player/guest mode.
+ * Get the authenticated user from the session.
+ * Returns null if not authenticated.
  */
-export async function getOrCreateDefaultUser() {
-    // Try to find an existing user
-    const existingUser = await prisma.user.findFirst({
-        orderBy: { createdAt: 'asc' } // Stable selection
-    });
+export async function getAuthenticatedUser() {
+    const session = await auth();
 
-    if (existingUser) {
-        return existingUser;
+    if (!session?.user?.email) {
+        return null;
     }
 
-    // Create default guest user
-    return prisma.user.create({
-        data: {
-            email: 'guest@oratoria.ai',
-            name: 'Guest User',
-            cefrLevel: 'A1',
-        }
+    const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
     });
+
+    return user;
+}
+
+/**
+ * Get the authenticated user or throw an error.
+ * Use this in API routes that require authentication.
+ */
+export async function requireAuth() {
+    const user = await getAuthenticatedUser();
+
+    if (!user) {
+        throw new Error("Unauthorized");
+    }
+
+    return user;
 }
