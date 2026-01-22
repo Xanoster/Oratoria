@@ -1,9 +1,23 @@
 import type { Metadata } from "next";
+import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const merriweather = Merriweather({
+  weight: ['300', '400', '700', '900'],
+  subsets: ["latin"],
+  variable: '--font-merriweather',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: "ORATORIA - Speak German",
-  description: "AI-first, competence-driven language learning engine for busy professionals learning German.",
+  title: "Oratoria - Master German Speaking",
+  description: "AI-powered language tutor focused on speaking confidence.",
 };
 
 export default function RootLayout({
@@ -13,7 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${inter.variable} ${merriweather.variable} antialiased font-sans`}>
+        {children}
+      </body>
     </html>
   );
 }
