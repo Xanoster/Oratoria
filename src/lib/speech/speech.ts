@@ -34,7 +34,7 @@ export interface SpeechRecognitionResult {
 export interface SpeechCaptureCallbacks {
     onResult: (result: SpeechRecognitionResult) => void;
     onError: (error: string) => void;
-    onEnd: () => void;
+    onEnd: (finalTranscript?: string) => void;
     onStart?: () => void;
 }
 
@@ -55,7 +55,9 @@ export function isSpeechRecognitionSupported(): boolean {
 // SPEECH RECOGNITION
 // =============================================================================
 
-let recognition: InstanceType<typeof window.SpeechRecognition> | null = null;
+// =============================================================================
+// SPEECH RECOGNITION
+// =============================================================================
 
 /**
  * Start speech recognition
@@ -75,13 +77,18 @@ export function startSpeechRecognition(
         window.SpeechRecognition ||
         (window as unknown as { webkitSpeechRecognition: typeof window.SpeechRecognition }).webkitSpeechRecognition;
 
-    recognition = new SpeechRecognition();
+    // Use local instance to prevent global state pollution / race conditions
+    const recognition = new SpeechRecognition();
     recognition.lang = language;
     recognition.interimResults = true;
     recognition.continuous = false;
     recognition.maxAlternatives = 1;
 
+    let lastFinalTranscript = '';
+    let hasStarted = false;
+
     recognition.onstart = () => {
+        hasStarted = true;
         callbacks.onStart?.();
     };
 
@@ -89,11 +96,16 @@ export function startSpeechRecognition(
         const result = event.results[event.results.length - 1];
         const transcript = result[0].transcript;
         const confidence = result[0].confidence;
+        const isFinal = result.isFinal;
+
+        if (isFinal) {
+            lastFinalTranscript = transcript.trim();
+        }
 
         callbacks.onResult({
             transcript,
-            confidence: confidence || 0.5, // Default if not provided
-            isFinal: result.isFinal,
+            confidence: confidence || 0.5,
+            isFinal,
         });
     };
 
@@ -104,6 +116,9 @@ export function startSpeechRecognition(
             message: event.message,
             type: event.type
         });
+
+        // Ignore 'no-speech' if we just started, or if it's aborted
+        if (event.error === 'aborted') return;
 
         let errorMessage = 'Speech recognition error';
 
@@ -132,7 +147,8 @@ export function startSpeechRecognition(
 
     recognition.onend = () => {
         console.log('Speech recognition ended');
-        callbacks.onEnd();
+        // Pass the actual captured final transcript to the end handler
+        callbacks.onEnd(lastFinalTranscript);
     };
 
     try {
@@ -144,23 +160,20 @@ export function startSpeechRecognition(
         return () => { };
     }
 
+    // Return cleanup function
     return () => {
-        if (recognition) {
-            recognition.stop();
-            recognition = null;
+        if (hasStarted) {
+            try {
+                recognition.abort();
+            } catch (e) {
+                // Ignore errors on abort
+            }
         }
     };
 }
 
-/**
- * Stop current recognition session
- */
-export function stopSpeechRecognition(): void {
-    if (recognition) {
-        recognition.stop();
-        recognition = null;
-    }
-}
+// NOTE: stopSpeechRecognition export removed as we now use the returned cleanup function
+
 
 // =============================================================================
 // PRONUNCIATION FEEDBACK
