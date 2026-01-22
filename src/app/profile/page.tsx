@@ -1,13 +1,18 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import DashboardLayout from '@/app/dashboard/layout';
-import { getOrCreateDefaultUser } from '@/lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import { getProfileData } from '@/lib/profile';
 import ProfileForm from '@/components/profile/ProfileForm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {
-    const user = await getOrCreateDefaultUser();
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        redirect('/login');
+    }
+
     const profileData = await getProfileData(user.id);
 
     return (

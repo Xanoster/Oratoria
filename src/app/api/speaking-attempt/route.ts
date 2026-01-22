@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { getOrCreateDefaultUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import { analyzeGrammar } from '@/lib/grammar/grammar-doctor';
 import { ErrorType } from '@/types';
 
@@ -16,7 +16,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const user = await getOrCreateDefaultUser();
+        // Get authenticated user
+        const user = await requireAuth().catch(() => null);
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
 
         // 1. Fetch sentence to compare against
         const sentence = await prisma.sentence.findUnique({
