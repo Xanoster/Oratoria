@@ -5,9 +5,6 @@ const globalForPrisma = globalThis as unknown as {
     prisma: PrismaClient | undefined;
 };
 
-// Explicitly set env var for Prisma 7 runtime
-process.env.DATABASE_URL = 'file:./dev.db';
-
 export const prisma =
     globalForPrisma.prisma ??
     new PrismaClient({
