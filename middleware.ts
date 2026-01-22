@@ -7,8 +7,8 @@ const protectedPaths = ["/dashboard", "/profile", "/lesson", "/roadmap", "/rolep
 // Paths that should redirect to dashboard if already authenticated
 const authPaths = ["/login", "/signup"];
 
-// Paths that require assessment completion (subset of protected paths)
-const assessmentRequiredPaths = ["/dashboard", "/lesson", "/roadmap", "/roleplay", "/profile"];
+// Paths that require onboarding completion
+const onboardingRequiredPaths = ["/dashboard", "/lesson", "/roadmap", "/roleplay", "/profile"];
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
@@ -27,23 +27,23 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
     }
 
-    // Redirect authenticated users away from auth pages
+    // Redirect authenticated users away from auth pages to onboarding
     if (authPaths.some((path) => pathname.startsWith(path)) && isAuthenticated) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        // Check if onboarding complete
+        const onboardingComplete = request.cookies.get("assessment-complete");
+        if (onboardingComplete) {
+            return NextResponse.redirect(new URL("/dashboard", request.url));
+        } else {
+            return NextResponse.redirect(new URL("/assessment", request.url));
+        }
     }
 
-    // Assessment gate: Check if user has completed assessment
-    // This is done via cookie set after assessment completion
-    if (assessmentRequiredPaths.some((path) => pathname.startsWith(path)) && isAuthenticated) {
-        const assessmentComplete = request.cookies.get("assessment-complete");
+    // Onboarding gate: redirect to /assessment if not completed
+    if (onboardingRequiredPaths.some((path) => pathname.startsWith(path)) && isAuthenticated) {
+        const onboardingComplete = request.cookies.get("assessment-complete");
 
-        // If no assessment cookie, redirect to assessment page
-        // The assessment page will check the database and redirect if already complete
-        if (!assessmentComplete) {
-            // Allow if already on assessment page
-            if (!pathname.startsWith("/assessment")) {
-                return NextResponse.redirect(new URL("/assessment", request.url));
-            }
+        if (!onboardingComplete) {
+            return NextResponse.redirect(new URL("/assessment", request.url));
         }
     }
 
