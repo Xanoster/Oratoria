@@ -56,33 +56,43 @@ export default function LearningSession({
             .replace(/\s+/g, ' ');
     };
 
-    const checkAnswer = async (): Promise<{ isCorrect: boolean; errors: GrammarError[] }> => {
+    const checkAnswer = async (): Promise<{ isCorrect: boolean; errors: GrammarError[]; quality: number }> => {
+        // First try Gemini API for intelligent analysis
+        try {
+            const response = await fetch('/api/learning/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userInput,
+                    expectedSentence: currentItem.sentence.germanText,
+                    cefrLevel: currentItem.sentence.cefrLevel
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                return {
+                    isCorrect: result.isCorrect,
+                    errors: result.errors || [],
+                    quality: result.quality || (result.isCorrect ? 1 : 0)
+                };
+            }
+        } catch (error) {
+            console.error('Gemini analysis failed, falling back to local:', error);
+        }
+
+        // Fallback to local comparison
         const normalized = normalizeText(userInput);
         const expected = normalizeText(currentItem.sentence.germanText);
 
-        // Simple exact match check first
         if (normalized === expected) {
-            return { isCorrect: true, errors: [] };
+            return { isCorrect: true, errors: [], quality: 1 };
         }
 
-        // Generate error analysis
+        // Generate basic error analysis
         const errors: GrammarError[] = [];
-
-        // Split into words for comparison
         const userWords = normalized.split(' ');
         const expectedWords = expected.split(' ');
-
-        // Check for word order issues (V2 rule)
-        if (userWords.length >= 2 && expectedWords.length >= 2) {
-            if (userWords[1] !== expectedWords[1]) {
-                errors.push({
-                    type: 'VERB_POSITION',
-                    expected: expectedWords[1],
-                    actual: userWords[1] || '',
-                    explanation: 'In German main clauses, the verb must be in the second position (V2 rule).'
-                });
-            }
-        }
 
         // Check for article errors
         const articles = ['der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer'];
@@ -92,30 +102,12 @@ export default function LearningSession({
                     type: 'ARTICLE',
                     expected: expectedWords[i],
                     actual: word,
-                    explanation: 'Check the gender and case of the noun to determine the correct article.'
+                    explanation: 'Check the gender and case of the noun for the correct article.'
                 });
             }
         });
 
-        // Check for case errors (common endings)
-        const caseEndings = ['en', 'em', 'er', 'es'];
-        userWords.forEach((word, i) => {
-            if (expectedWords[i] && word !== expectedWords[i]) {
-                const wordEnding = word.slice(-2);
-                const expectedEnding = expectedWords[i].slice(-2);
-                if (caseEndings.includes(wordEnding) && caseEndings.includes(expectedEnding)) {
-                    errors.push({
-                        type: 'CASE',
-                        expected: expectedWords[i],
-                        actual: word,
-                        explanation: 'The noun/adjective ending indicates the grammatical case (Nominative, Accusative, Dative, or Genitive).'
-                    });
-                }
-            }
-        });
-
-        // If no specific errors found but still wrong, add general spelling error
-        if (errors.length === 0 && normalized !== expected) {
+        if (errors.length === 0) {
             errors.push({
                 type: 'SPELLING',
                 expected: currentItem.sentence.germanText,
@@ -124,7 +116,7 @@ export default function LearningSession({
             });
         }
 
-        return { isCorrect: false, errors };
+        return { isCorrect: false, errors, quality: 0 };
     };
 
     const handleSubmit = async () => {
