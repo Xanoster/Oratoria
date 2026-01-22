@@ -1,125 +1,192 @@
-import React from 'react';
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { getAuthenticatedUser } from '@/lib/auth';
-import { getDashboardData } from '@/lib/dashboard';
+import LearningSession from '@/components/learning/LearningSession';
 
-export const dynamic = 'force-dynamic'; // Ensure no caching of stats
+interface SRSItem {
+    id: string;
+    sentenceId: string;
+    sentence: {
+        id: string;
+        germanText: string;
+        englishText: string;
+        clozeTargets: string;
+        cefrLevel: string;
+    };
+}
 
-export default async function DashboardPage() {
-    // Fetch real data
-    const user = await getAuthenticatedUser();
-    if (!user) {
-        redirect('/login');
+interface SRSCounts {
+    dueNow: number;
+    overdue: number;
+    newToday: number;
+    totalDue: number;
+}
+
+export default function DashboardPage() {
+    const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [items, setItems] = useState<SRSItem[]>([]);
+    const [counts, setCounts] = useState<SRSCounts>({ dueNow: 0, overdue: 0, newToday: 0, totalDue: 0 });
+    const [inSession, setInSession] = useState(false);
+    const [userName, setUserName] = useState('');
+    const [cefrLevel, setCefrLevel] = useState('A1');
+
+    // Fetch SRS queue on mount
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                // Fetch user info
+                const userRes = await fetch('/api/auth/session');
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    setUserName(userData?.user?.name || 'Learner');
+                }
+
+                // Fetch SRS queue
+                const queueRes = await fetch('/api/srs/queue');
+                if (queueRes.ok) {
+                    const queueData = await queueRes.json();
+                    setItems(queueData.items || []);
+                    setCounts(queueData.counts || { dueNow: 0, overdue: 0, newToday: 0, totalDue: 0 });
+                }
+
+                // Fetch CEFR level
+                const assessmentRes = await fetch('/api/assessment/status');
+                if (assessmentRes.ok) {
+                    const assessmentData = await assessmentRes.json();
+                    setCefrLevel(assessmentData.cefrLevel || 'A1');
+                }
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, []);
+
+    const handleItemComplete = async (itemId: string, quality: number, outputType: string) => {
+        try {
+            await fetch('/api/srs/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    srsStateId: itemId,
+                    quality,
+                    outputType
+                })
+            });
+        } catch (error) {
+            console.error('Error updating SRS:', error);
+        }
+    };
+
+    const handleSessionComplete = () => {
+        setInSession(false);
+        // Refresh the queue
+        router.refresh();
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#faf5f0] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-[#c17767] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-[#8b7355]">Loading your learning queue...</p>
+                </div>
+            </div>
+        );
     }
 
-    const data = await getDashboardData(user.id);
+    // In learning session mode
+    if (inSession && items.length > 0) {
+        return (
+            <div className="min-h-screen bg-[#faf5f0] py-8 px-4">
+                <LearningSession
+                    items={items}
+                    onComplete={handleSessionComplete}
+                    onItemComplete={handleItemComplete}
+                />
+            </div>
+        );
+    }
 
-    const stats = [
-        { label: 'Current Level', value: data.level, subtext: 'Student' },
-        { label: 'Day Streak', value: data.streak.toString(), subtext: 'Days' },
-        { label: 'Sentences', value: data.masteredCount.toString(), subtext: 'Mastered' },
-    ];
-
+    // Dashboard view - SRS as primary navigation
     return (
-        <div className="space-y-8">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="font-serif text-3xl font-bold text-[#2d1b0e]">Guten Tag, {data.userName}! 👋</h1>
-                    <p className="text-[#5c4a3a] mt-1">Ready to continue your German journey?</p>
-                </div>
-                <Link href="/lesson">
-                    <Button size="lg" className="w-full md:w-auto shadow-xl shadow-[#c17767]/20">
-                        Continue Learning
-                    </Button>
-                </Link>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {stats.map((stat, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl p-6 shadow-sm border border-[#e2e8f0] hover:shadow-md transition-shadow">
-                        <p className="text-sm font-semibold text-[#8b7355] uppercase tracking-wide">{stat.label}</p>
-                        <div className="flex items-baseline mt-2">
-                            <span className="text-3xl font-bold text-[#2d1b0e]">{stat.value}</span>
-                            <span className="ml-2 text-sm text-[#5c4a3a]">{stat.subtext}</span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Content Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Content - 2/3 width */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-2xl shadow-sm border border-[#e2e8f0] overflow-hidden">
-                        <div className="p-6 border-b border-[#e2e8f0] flex justify-between items-center">
-                            <h2 className="font-serif text-xl font-bold text-[#2d1b0e]">Recent Activity</h2>
-                            <Link href="/profile" className="text-sm font-semibold text-[#c17767] hover:underline">
-                                View History
-                            </Link>
-                        </div>
-                        <div className="divide-y divide-[#f0f4f8]">
-                            {data.recentActivity.length > 0 ? (
-                                data.recentActivity.map((activity) => (
-                                    <div key={activity.id} className="p-4 hover:bg-[#faf8f5] transition-colors flex items-center justify-between group cursor-pointer">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm
-                                                ${activity.status === 'Success'
-                                                    ? 'bg-[#f0f7e6] text-[#6b8e23]'
-                                                    : 'bg-[#fef4e6] text-[#d4800f]'}`}>
-                                                {activity.status === 'Success' ? '✓' : '↻'}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-[#2d1b0e] truncate max-w-[200px]">{activity.title}</h3>
-                                                <p className="text-sm text-[#8b7355]">{activity.date}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="font-bold text-[#2d1b0e]">{activity.score}</span>
-                                            <p className={`text-xs font-medium mt-0.5
-                                                ${activity.status === 'Success' ? 'text-[#6b8e23]' : 'text-[#d4800f]'}`}>
-                                                {activity.status}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="p-8 text-center text-[#8b7355]">
-                                    No activity yet. Complete a lesson to see your progress!
-                                </div>
-                            )}
-                        </div>
-                    </div>
+        <div className="min-h-screen bg-[#faf5f0] py-8 px-4">
+            <div className="max-w-2xl mx-auto space-y-8">
+                {/* Header */}
+                <div className="text-center">
+                    <h1 className="font-serif text-3xl font-bold text-[#2d1b0e]">
+                        Guten Tag, {userName}! 👋
+                    </h1>
+                    <p className="text-[#5c4a3a] mt-2">
+                        Level: <span className="font-bold text-[#c17767]">{cefrLevel}</span>
+                    </p>
                 </div>
 
-                {/* Sidebar - 1/3 width */}
-                <div className="space-y-6">
-                    {/* Next Goal Card */}
-                    <div className="bg-gradient-to-br from-[#c17767] to-[#8b5e3c] rounded-2xl p-6 text-white shadow-lg">
-                        <h3 className="font-serif text-lg font-bold mb-2">Next Goal</h3>
-                        <p className="text-white/90 text-sm mb-4">{data.nextGoal}</p>
-                        <div className="w-full bg-black/20 rounded-full h-2 mb-2">
-                            <div
-                                className="bg-white rounded-full h-2 transition-all duration-500"
-                                style={{ width: `${data.progressPercent}%` }}
-                            ></div>
+                {/* SRS Queue Stats */}
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                    <h2 className="font-serif text-xl font-bold text-[#2d1b0e] mb-6 text-center">
+                        Your Review Queue
+                    </h2>
+
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                        {/* Due Now */}
+                        <div className="text-center p-4 bg-[#fef4e6] rounded-xl">
+                            <p className="text-3xl font-bold text-[#c17767]">{counts.dueNow}</p>
+                            <p className="text-xs text-[#8b7355] mt-1">Due Now</p>
                         </div>
-                        <p className="text-xs text-white/80 font-medium">{Math.round(data.progressPercent)}% Progress</p>
+
+                        {/* Overdue */}
+                        <div className="text-center p-4 bg-[#fff8f5] rounded-xl">
+                            <p className="text-3xl font-bold text-[#d45d5d]">{counts.overdue}</p>
+                            <p className="text-xs text-[#8b7355] mt-1">Overdue</p>
+                        </div>
+
+                        {/* New Today */}
+                        <div className="text-center p-4 bg-[#f0f7e6] rounded-xl">
+                            <p className="text-3xl font-bold text-[#6b8e23]">{counts.newToday}</p>
+                            <p className="text-xs text-[#8b7355] mt-1">New Today</p>
+                        </div>
                     </div>
 
-                    {/* Tip Card */}
-                    <div className="bg-[#faf5f0] rounded-2xl p-6 border-l-4 border-[#c17767]">
-                        <h3 className="font-bold text-[#2d1b0e] mb-2 flex items-center">
-                            <span className="text-xl mr-2">💡</span> Proton Tip
-                        </h3>
-                        <p className="text-sm text-[#5c4a3a]">
-                            {data.tip}
-                        </p>
-                    </div>
+                    {/* Start Review Button */}
+                    {counts.totalDue > 0 ? (
+                        <Button
+                            onClick={() => setInSession(true)}
+                            className="w-full"
+                            size="lg"
+                        >
+                            Start Review ({counts.totalDue} items)
+                        </Button>
+                    ) : (
+                        <div className="text-center py-8">
+                            <div className="w-16 h-16 bg-[#f0f7e6] rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span className="text-3xl">🎉</span>
+                            </div>
+                            <p className="text-[#6b8e23] font-bold mb-2">All caught up!</p>
+                            <p className="text-sm text-[#8b7355]">
+                                You've reviewed all due items. Check back later for more.
+                            </p>
+                        </div>
+                    )}
                 </div>
+
+                {/* Philosophy Notice */}
+                <div className="bg-[#faf5f0] border border-[#e2d5c7] rounded-xl p-4 text-center">
+                    <p className="text-sm text-[#8b7355]">
+                        🎯 <strong>Focus on output.</strong> Every review requires you to produce German.
+                        No passive consumption. No skipping.
+                    </p>
+                </div>
+
+                {/* No browsing notice */}
+                <p className="text-center text-xs text-[#8b7355]">
+                    ⚠️ Lesson browsing is disabled. SRS determines your learning path.
+                </p>
             </div>
         </div>
     );

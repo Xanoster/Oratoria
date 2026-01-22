@@ -7,7 +7,10 @@ const protectedPaths = ["/dashboard", "/profile", "/lesson", "/roadmap", "/rolep
 // Paths that should redirect to dashboard if already authenticated
 const authPaths = ["/login", "/signup"];
 
-export function middleware(request: NextRequest) {
+// Paths that require assessment completion (subset of protected paths)
+const assessmentRequiredPaths = ["/dashboard", "/lesson", "/roadmap", "/roleplay", "/profile"];
+
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Check if the user has a session token
@@ -29,6 +32,21 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
+    // Assessment gate: Check if user has completed assessment
+    // This is done via cookie set after assessment completion
+    if (assessmentRequiredPaths.some((path) => pathname.startsWith(path)) && isAuthenticated) {
+        const assessmentComplete = request.cookies.get("assessment-complete");
+
+        // If no assessment cookie, redirect to assessment page
+        // The assessment page will check the database and redirect if already complete
+        if (!assessmentComplete) {
+            // Allow if already on assessment page
+            if (!pathname.startsWith("/assessment")) {
+                return NextResponse.redirect(new URL("/assessment", request.url));
+            }
+        }
+    }
+
     return NextResponse.next();
 }
 
@@ -41,5 +59,6 @@ export const config = {
         "/roleplay/:path*",
         "/login",
         "/signup",
+        "/assessment/:path*",
     ],
 };
