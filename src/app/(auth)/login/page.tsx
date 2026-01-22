@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -10,16 +11,32 @@ export default function LoginPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setError('');
 
-        // Simulation of login (MVP)
-        setTimeout(() => {
+        try {
+            const result = await signIn('credentials', {
+                email,
+                password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                setError('Invalid email or password');
+                setIsLoading(false);
+            } else {
+                router.push('/dashboard');
+                router.refresh();
+            }
+        } catch (err) {
+            setError('An error occurred during login');
             setIsLoading(false);
-            router.push('/dashboard');
-        }, 1500);
+        }
     };
 
     return (
@@ -29,6 +46,12 @@ export default function LoginPage() {
                     <h1 className="font-serif text-3xl font-bold text-[#2d1b0e] mb-2">Welcome Back</h1>
                     <p className="text-[#5c4a3a]">Continue your German journey</p>
                 </div>
+
+                {error && (
+                    <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        {error}
+                    </div>
+                )}
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <Input
@@ -40,13 +63,22 @@ export default function LoginPage() {
                         required
                     />
 
+                    <Input
+                        label="Password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+
                     <Button
                         type="submit"
                         className="w-full"
                         size="lg"
                         isLoading={isLoading}
                     >
-                        Sign In with Email
+                        Sign In
                     </Button>
                 </form>
 
