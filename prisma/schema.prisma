@@ -1,0 +1,332 @@
+// ORATORIA Data Schema
+// 
+// PRIORITY ORDER (from constitution):
+// 1. Product laws
+// 2. System simplicity and reliability
+// 3. Learning science correctness
+// 4. UX clarity
+// 5. Code elegance
+//
+// INVARIANTS ENFORCED:
+// - Sentence immutable after publish (enforced via publishedAt + app logic)
+// - ReviewHistory append-only (no UPDATE/DELETE in app logic)
+// - SRSState persisted but recomputable from ReviewHistory
+// - SpeakingAttempt includes transcript, confidence, errors, outcome
+// - ErrorType is enum-only
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// =============================================================================
+// USER
+// =============================================================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  cefrLevel String   @default("A1") // A1, A2, B1, B2, C1, C2
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  srsStates        SRSState[]
+  speakingAttempts SpeakingAttempt[]
+  progressState    ProgressState?
+
+  @@index([email])
+}
+
+// =============================================================================
+// SENTENCE - Atomic learning unit (words are forbidden)
+// INVARIANT: Immutable after publishedAt is set
+// =============================================================================
+model Sentence {
+  id              String    @id @default(cuid())
+  germanText      String    // The German sentence to learn
+  englishText     String    // English translation
+  
+  // Cloze targets for this sentence (JSON: array of {type, startIdx, endIdx})
+  // Types: ARTICLE, VERB_POSITION, CASE_ENDING
+  clozeTargets    String    @default("[]")
+  
+  // Immutability marker - once set, sentence should not be modified
+  publishedAt     DateTime?
+  
+  // Metadata
+  cefrLevel       String    @default("A1")
+  grammarFocus    String?   // Primary grammar point this sentence teaches
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  audio            Audio[]
+  grammarTags      GrammarTag[]
+  srsStates        SRSState[]
+  speakingAttempts SpeakingAttempt[]
+  lessonSentences  LessonSentence[]
+
+  @@index([cefrLevel])
+  @@index([publishedAt])
+}
+
+// =============================================================================
+// AUDIO - Pronunciation reference for sentences
+// =============================================================================
+model Audio {
+  id         String   @id @default(cuid())
+  sentenceId String
+  sentence   Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  
+  url        String   // Path or URL to audio file
+  voice      String   @default("native") // native, slow, synthesized
+  duration   Float?   // Duration in seconds
+  createdAt  DateTime @default(now())
+
+  @@index([sentenceId])
+}
+
+// =============================================================================
+// GRAMMAR TAG - Classification for sentences
+// =============================================================================
+model GrammarTag {
+  id         String   @id @default(cuid())
+  sentenceId String
+  sentence   Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  
+  // From fixed taxonomy: CASE, GENDER, VERB_POSITION, TENSE, PREPOSITION, ARTICLE, AGREEMENT, WORD_ORDER
+  tagType    String
+  value      String?  // Specific value (e.g., "dative", "der", "V2")
+  
+  @@index([sentenceId])
+  @@index([tagType])
+}
+
+// =============================================================================
+// SRS STATE - Spaced repetition state per user per sentence
+// INVARIANT: Persisted but recomputable from ReviewHistory
+// =============================================================================
+model SRSState {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentenceId  String
+  sentence    Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  
+  // SM-2 algorithm state
+  easeFactor  Float    @default(2.5)  // Minimum 1.3
+  interval    Int      @default(1)    // Days until next review
+  repetitions Int      @default(0)    // Successful repetitions in a row
+  
+  // FSRS-style additions
+  stability   Float    @default(1.0)  // Memory stability
+  difficulty  Float    @default(0.3)  // Item difficulty (0-1)
+  
+  // Scheduling
+  nextReview  DateTime @default(now())
+  lastReview  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations - append-only log
+  reviewHistory ReviewHistory[]
+
+  @@unique([userId, sentenceId])
+  @@index([userId, nextReview])
+}
+
+// =============================================================================
+// REVIEW HISTORY - Append-only log of all reviews
+// INVARIANT: Never update or delete records
+// =============================================================================
+model ReviewHistory {
+  id         String   @id @default(cuid())
+  srsStateId String
+  srsState   SRSState @relation(fields: [srsStateId], references: [id], onDelete: Cascade)
+  
+  // Quality: 0 (fail), 0.5 (partial), 1 (correct)
+  quality    Float
+  
+  // Output type affects scoring (spoken weighted 1.2x)
+  outputType String   // "spoken" | "typed"
+  
+  // Snapshot of state after this review (for recomputation verification)
+  intervalAfter   Int
+  easeFactorAfter Float
+  
+  reviewedAt DateTime @default(now())
+
+  @@index([srsStateId])
+  @@index([reviewedAt])
+}
+
+// =============================================================================
+// SPEAKING ATTEMPT - Record of user output
+// =============================================================================
+model SpeakingAttempt {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentenceId String
+  sentence   Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  
+  // Transcript from speech recognition
+  transcript String
+  
+  // Confidence score from speech API (0-1)
+  confidence Float
+  
+  // Errors detected (JSON array of {type, position, expected, actual, explanation})
+  // ErrorTypes: CASE, GENDER, VERB_POSITION, TENSE, PREPOSITION, ARTICLE, AGREEMENT, WORD_ORDER
+  errors     String   @default("[]")
+  
+  // Outcome classification
+  outcome    String   // "success" | "partial" | "fail"
+  
+  // Duration of speaking in seconds
+  durationMs Int      @default(0)
+  
+  // Audio stored only with explicit opt-in (PRIVACY requirement)
+  audioPath  String?
+  
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([sentenceId])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// LESSON - Container for sentences in a learning sequence
+// =============================================================================
+model Lesson {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  
+  // Narrative context
+  narrativeNodeId String?
+  narrativeNode   NarrativeNode? @relation(fields: [narrativeNodeId], references: [id])
+  
+  // Ordering and gating
+  orderIndex      Int      @default(0)
+  cefrLevel       String   @default("A1")
+  
+  // Session duration target (5-15 minutes per constitution)
+  targetDurationMin Int    @default(10)
+  
+  createdAt       DateTime @default(now())
+
+  // Relations
+  sentences LessonSentence[]
+
+  @@index([orderIndex])
+  @@index([narrativeNodeId])
+}
+
+// =============================================================================
+// LESSON SENTENCE - Join table with ordering
+// =============================================================================
+model LessonSentence {
+  id         String   @id @default(cuid())
+  lessonId   String
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  sentenceId String
+  sentence   Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  
+  orderIndex Int      @default(0)
+
+  @@unique([lessonId, sentenceId])
+  @@index([lessonId, orderIndex])
+}
+
+// =============================================================================
+// NARRATIVE NODE - Story progression point
+// Each node defines: setting, goal, obstacle, linguistic objective
+// =============================================================================
+model NarrativeNode {
+  id                  String   @id @default(cuid())
+  title               String
+  
+  // Narrative elements (required per constitution)
+  setting             String   // Where this takes place
+  goal                String   // What the protagonist wants to achieve
+  obstacle            String   // What makes it challenging
+  linguisticObjective String   // What grammar/vocab this teaches
+  
+  // Ordering
+  orderIndex          Int      @default(0)
+  
+  // Unlock criteria (JSON: {speakingDurationMin, errorRecoveryRate, srsRetention})
+  // NEVER unlock based on lesson count (constitution)
+  unlockCriteria      String   @default("{}")
+  
+  createdAt           DateTime @default(now())
+
+  // Relations
+  lessons            Lesson[]
+  roleplayScenarios  RoleplayScenario[]
+
+  @@index([orderIndex])
+}
+
+// =============================================================================
+// ROLEPLAY SCENARIO - Turn-based interaction with fixed personas
+// =============================================================================
+model RoleplayScenario {
+  id              String        @id @default(cuid())
+  narrativeNodeId String
+  narrativeNode   NarrativeNode @relation(fields: [narrativeNodeId], references: [id], onDelete: Cascade)
+  
+  // Fixed persona (no free-form chat per constitution)
+  persona         String   // e.g., "Bürgeramt clerk", "baker", "colleague"
+  personaPrompt   String   // System prompt for LLM
+  
+  // CEFR-capped language
+  cefrLevel       String   @default("A1")
+  
+  // Scenario context
+  setting         String
+  objective       String   // What user should accomplish
+  
+  // Allowed turns (difficulty lever)
+  maxTurns        Int      @default(6)
+  
+  createdAt       DateTime @default(now())
+
+  @@index([narrativeNodeId])
+}
+
+// =============================================================================
+// PROGRESS STATE - User progression tracker
+// Unlock depends on: speaking duration, error recovery, SRS retention
+// NEVER lesson count (constitution)
+// =============================================================================
+model ProgressState {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Current position
+  currentNarrativeNode  Int      @default(0)
+  currentLesson         Int      @default(0)
+  
+  // Ability metrics (for gating)
+  totalSpeakingMs       Int      @default(0)  // Total speaking time
+  recentSpeakingMs      Int      @default(0)  // Speaking in last 7 days
+  errorRecoveryRate     Float    @default(0)  // % of errors corrected on retry
+  srsRetentionRate      Float    @default(0)  // % of reviews marked success
+  
+  // Metrics (from constitution - only these)
+  speechSecondsToday    Int      @default(0)
+  roleplayTurnCount     Int      @default(0)
+  outputFrequency       Float    @default(0)  // Outputs per session
+  
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+}
