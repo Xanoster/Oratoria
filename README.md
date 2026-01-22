@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Oratoria 🎭
+
+A German language learning app focused on speaking practice through immersive roleplay scenarios. Master German one scenario at a time with spaced repetition and AI-powered conversations.
+
+## Features
+
+- 🔐 **Authentication**: Email/password signup and login with NextAuth.js
+- ☁️ **Cloud Database**: Supabase PostgreSQL for persistent user data
+- 🗺️ **Learning Roadmap**: Progress through scenarios with real-time tracking
+- 🎯 **Spaced Repetition (SRS)**: Optimized learning based on proven memory science
+- 🎭 **Roleplay Practice**: Contextual German conversations with AI
+- 📊 **Progress Tracking**: Track your learning journey with real statistics
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Database**: Supabase PostgreSQL + Prisma ORM
+- **Authentication**: NextAuth.js v5 (Auth.js)
+- **Styling**: CSS with custom design system
+- **Language**: TypeScript
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+
+- Supabase account (free tier works)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Xanoster/Oratoria.git
+   cd Oratoria
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   
+   Create a `.env` file in the root directory:
+   ```env
+   # Database (Supabase PostgreSQL)
+   DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+
+   # NextAuth
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="your-super-secret-key-min-32-chars"
+   ```
+
+4. **Set up the database**
+   ```bash
+   npx prisma migrate dev
+   ```
+
+5. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000)
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Authentication pages (login, signup)
+│   ├── api/               # API routes
+│   ├── dashboard/         # User dashboard
+│   ├── roadmap/           # Learning journey roadmap
+│   └── roleplay/          # Roleplay practice
+├── components/            # React components
+├── lib/                   # Utilities and configurations
+│   ├── auth.config.ts     # NextAuth configuration
+│   └── db.ts              # Prisma client
+└── types/                 # TypeScript type definitions
+
+prisma/
+├── schema.prisma          # Database schema
+└── migrations/            # Database migrations
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database Schema
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Key models:
+- **User**: Authentication and profile data
+- **RoleplayScenario**: Learning scenarios with progress tracking
+- **Sentence**: German sentences for practice
+- **SRSState**: Spaced repetition data per user/sentence
+- **SpeakingAttempt**: Records of practice attempts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment
 
-## Learn More
+### Vercel (Recommended)
 
-To learn more about Next.js, take a look at the following resources:
+1. Push to GitHub
+2. Import project in Vercel
+3. Add environment variables
+4. Deploy!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Environment Variables for Production
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```env
+DATABASE_URL="your-supabase-connection-string"
+NEXTAUTH_URL="https://yourdomain.com"
+NEXTAUTH_SECRET="generate-with-openssl-rand-base64-32"
+```
 
-## Deploy on Vercel
+## Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+MIT License - see LICENSE for details.
