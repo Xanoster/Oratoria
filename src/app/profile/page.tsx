@@ -131,14 +131,6 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="bg-gradient-to-br from-[#2d1b0e] to-[#5c4a3a] rounded-2xl p-6 text-white shadow-lg">
-                            <h3 className="font-serif text-lg font-bold mb-2">Oratoria Pro</h3>
-                            <p className="text-white/80 text-sm mb-4">Unlock unlimited speaking practice and roleplay scenarios.</p>
-                            <Button variant="secondary" className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20">
-                                Upgrade Plan
-                            </Button>
-                        </div>
                     </div>
                 </div>
             </div>
