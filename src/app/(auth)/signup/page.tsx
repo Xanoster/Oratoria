@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -12,18 +13,70 @@ export default function SignupPage() {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        password: '',
+        confirmPassword: '',
     });
+    const [error, setError] = useState('');
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setError('');
 
-        // Simulation of signup (MVP)
-        // In real app, this would call /api/auth/signup
-        setTimeout(() => {
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
             setIsLoading(false);
-            router.push('/dashboard');
-        }, 1500);
+            return;
+        }
+
+        // Validate password length
+        if (formData.password.length < 6) {
+            setError('Password must be at least 6 characters');
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            // Call signup API
+            const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    password: formData.password,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setError(data.error || 'Failed to create account');
+                setIsLoading(false);
+                return;
+            }
+
+            // Auto-login after successful signup
+            const result = await signIn('credentials', {
+                email: formData.email,
+                password: formData.password,
+                redirect: false,
+            });
+
+            if (result?.error) {
+                setError('Account created but login failed. Please try logging in.');
+                setIsLoading(false);
+            } else {
+                router.push('/dashboard');
+                router.refresh();
+            }
+        } catch (err) {
+            setError('An error occurred during signup');
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -34,6 +87,12 @@ export default function SignupPage() {
                     <p className="text-[#5c4a3a]">Start mastering German today</p>
                 </div>
 
+                {error && (
+                    <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        {error}
+                    </div>
+                )}
+
                 <form onSubmit={handleSignup} className="space-y-6">
                     <Input
                         label="Your Name"
@@ -41,7 +100,6 @@ export default function SignupPage() {
                         placeholder="Hans Müller"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
                     />
 
                     <Input
@@ -53,13 +111,31 @@ export default function SignupPage() {
                         required
                     />
 
+                    <Input
+                        label="Password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        required
+                    />
+
+                    <Input
+                        label="Confirm Password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                        required
+                    />
+
                     <Button
                         type="submit"
                         className="w-full"
                         size="lg"
                         isLoading={isLoading}
                     >
-                        Start Learning
+                        Create Account
                     </Button>
                 </form>
 

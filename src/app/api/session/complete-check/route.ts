@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { getOrCreateDefaultUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ allowed: false, reason: 'Missing sentenceId' }, { status: 400 });
         }
 
-        const user = await getOrCreateDefaultUser();
+        const user = await requireAuth().catch(() => null);
+        if (!user) {
+            return NextResponse.json({ allowed: false, reason: 'Unauthorized' }, { status: 401 });
+        }
 
         // Check 1: Does a recent speaking attempt exist?
         // (For MVP, just check if ANY attempt exists for this sentence today)

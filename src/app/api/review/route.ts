@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { getOrCreateDefaultUser } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import {
     calculateNextReview,
     createInitialSRSState,
@@ -22,7 +22,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const user = await getOrCreateDefaultUser();
+        // Get authenticated user
+        const user = await requireAuth().catch(() => null);
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
 
         // Transaction to ensure atomicity:
         // 1. Get/Create SRS State

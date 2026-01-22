@@ -1,14 +1,19 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { getOrCreateDefaultUser } from '@/lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import { getDashboardData } from '@/lib/dashboard';
 
 export const dynamic = 'force-dynamic'; // Ensure no caching of stats
 
 export default async function DashboardPage() {
     // Fetch real data
-    const user = await getOrCreateDefaultUser();
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        redirect('/login');
+    }
+
     const data = await getDashboardData(user.id);
 
     const stats = [
