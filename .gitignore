@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# SQLite database files (migrated to Supabase PostgreSQL)
+*.db
+*.db-shm
+*.db-wal
+prisma/dev.db
