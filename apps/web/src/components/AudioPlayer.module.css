@@ -1,0 +1,68 @@
+.player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+}
+
+.waveform {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 40px;
+    width: 100%;
+}
+
+.waveformBar {
+    width: 4px;
+    background: var(--color-accent);
+    border-radius: 2px;
+    opacity: 0.5;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.controlBtn,
+.playBtn,
+.pauseBtn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: var(--color-surface);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.playBtn,
+.pauseBtn {
+    width: 48px;
+    height: 48px;
+    background: var(--color-accent);
+}
+
+.controlBtn:hover {
+    background: #E5E7EB;
+}
+
+.playBtn:hover,
+.pauseBtn:hover {
+    transform: scale(1.05);
+}
+
+.duration {
+    font-size: var(--font-small);
+    color: var(--color-muted);
+}

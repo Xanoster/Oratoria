@@ -1,0 +1,164 @@
+.main {
+    min-height: 100vh;
+    padding: var(--spacing-4);
+    padding-top: var(--spacing-8);
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.loading {
+    text-align: center;
+    padding: var(--spacing-8);
+    color: var(--color-muted);
+}
+
+.header {
+    margin-bottom: var(--spacing-8);
+}
+
+.backLink {
+    font-size: var(--font-small);
+    color: var(--color-muted);
+    display: block;
+    margin-bottom: var(--spacing-4);
+}
+
+.header h1 {
+    font-size: 28px;
+}
+
+/* Sections */
+.section,
+.dangerSection {
+    background: var(--color-surface);
+    padding: var(--spacing-6);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-6);
+}
+
+.section h2,
+.dangerSection h2 {
+    font-size: 18px;
+    margin-bottom: var(--spacing-4);
+}
+
+.field {
+    margin-bottom: var(--spacing-4);
+}
+
+.fieldNote {
+    font-size: var(--font-small);
+    color: var(--color-muted);
+    margin-top: var(--spacing-1);
+}
+
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.radio {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    cursor: pointer;
+}
+
+.radio input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+}
+
+.radioLabel {
+    font-weight: 500;
+}
+
+/* Danger Zone */
+.dangerSection {
+    border: 1px solid #FEE2E2;
+    background: #FEF2F2;
+}
+
+.dangerBtn {
+    background: var(--color-surface);
+    border: 1px solid var(--color-error);
+    color: var(--color-error);
+    padding: var(--spacing-3) var(--spacing-4);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dangerBtn:hover {
+    background: var(--color-error);
+    color: white;
+}
+
+.dangerNote {
+    font-size: var(--font-small);
+    color: var(--color-muted);
+    margin-top: var(--spacing-3);
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    gap: var(--spacing-4);
+    flex-wrap: wrap;
+}
+
+/* Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-4);
+    z-index: 1000;
+}
+
+.modal {
+    background: var(--color-surface);
+    padding: var(--spacing-8);
+    border-radius: var(--radius-lg);
+    max-width: 450px;
+    width: 100%;
+}
+
+.modal h2 {
+    margin-bottom: var(--spacing-4);
+}
+
+.modal p {
+    color: var(--color-muted);
+    margin-bottom: var(--spacing-4);
+}
+
+.modal code {
+    background: var(--color-bg);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    font-family: monospace;
+}
+
+.modal input {
+    margin-bottom: var(--spacing-4);
+}
+
+.modalActions {
+    display: flex;
+    gap: var(--spacing-3);
+    justify-content: flex-end;
+}

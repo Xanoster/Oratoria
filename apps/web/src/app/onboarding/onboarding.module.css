@@ -1,0 +1,141 @@
+.main {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-4);
+}
+
+.container {
+    max-width: 500px;
+    width: 100%;
+}
+
+.progress {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-8);
+}
+
+.progressDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #1E293B;
+    transition: background 0.2s ease;
+}
+
+.progressDot.active {
+    background: var(--color-accent);
+}
+
+.stepContent {
+    background: var(--color-surface);
+    padding: var(--spacing-8);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.stepContent h1 {
+    margin-bottom: var(--spacing-4);
+}
+
+.tip {
+    color: var(--color-muted);
+    font-size: var(--font-small);
+    font-style: italic;
+    margin-bottom: var(--spacing-6);
+}
+
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    margin: var(--spacing-6) 0;
+    text-align: left;
+}
+
+.radioOption {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    background: #0A0E1A;
+    border: 1px solid #1E293B;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.radioOption:hover {
+    background: #0F1729;
+    border-color: #3B82F6;
+}
+
+.radioOption input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-accent);
+}
+
+.radioLabel {
+    font-weight: 500;
+}
+
+.field {
+    text-align: left;
+    margin-bottom: var(--spacing-4);
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    text-align: left;
+    margin-bottom: var(--spacing-4);
+    cursor: pointer;
+}
+
+.checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+}
+
+.buttonRow {
+    display: flex;
+    gap: var(--spacing-4);
+    justify-content: center;
+    margin-top: var(--spacing-6);
+}
+
+.readyIcon {
+    font-size: 64px;
+    margin-bottom: var(--spacing-4);
+}
+
+.micNote {
+    background: #0F1729;
+    border: 1px solid #1E293B;
+    padding: var(--spacing-4);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-6);
+    text-align: left;
+}
+
+.micNote p {
+    font-size: var(--font-small);
+    color: var(--color-text);
+}
+
+.skipLink {
+    text-align: center;
+    margin-top: var(--spacing-6);
+}
+
+.skipLink a {
+    color: var(--color-muted);
+    font-size: var(--font-small);
+}
