@@ -29,6 +29,7 @@ model User {
   srsItems        SrsItem[]
   embeddings      Embedding[]
   analyticsEvents AnalyticsEvent[]
+  evaluations     Evaluation[]
 
   @@map("users")
 }
@@ -77,9 +78,10 @@ model Recording {
   status    String   @default("received") // received, processing, done, failed
   createdAt DateTime @default(now()) @map("created_at")
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson   Lesson?   @relation(fields: [lessonId], references: [id])
-  analysis Analysis?
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson?      @relation(fields: [lessonId], references: [id])
+  analysis    Analysis?
+  evaluations Evaluation[]
 
   @@index([userId])
   @@index([status])
@@ -157,4 +159,34 @@ model AnalyticsEvent {
   @@index([userId, eventType])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+// ============================================
+// Evaluations (User Speech Assessment)
+// ============================================
+
+model Evaluation {
+  id                 String   @id @default(uuid())
+  userId             String   @map("user_id")
+  recordingId        String?  @map("recording_id")
+  transcript         String
+  expectedText       String?  @map("expected_text")
+  userLevel          String   @map("user_level") // A0, A1, A2, B1, B2
+  mode               String   // placement, lesson
+  overallScore       Float    @map("overall_score")
+  pronunciationScore Float    @map("pronunciation_score")
+  grammarScore       Float    @map("grammar_score")
+  fluencyScore       Float    @map("fluency_score")
+  detectedErrors     Json     @default("[]") @map("detected_errors")
+  confidence         Float    @default(0)
+  status             String   @default("pending") // pending, completed, failed, needs_review
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recording Recording? @relation(fields: [recordingId], references: [id])
+
+  @@index([userId])
+  @@index([userId, mode])
+  @@index([status])
+  @@map("evaluations")
 }
