@@ -11,11 +11,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Check for dev auth cookie
-    const devAuth = request.cookies.get('dev_auth');
+    // Check for auth cookie
+    const accessToken = request.cookies.get('access_token');
 
     // If no auth, redirect to login
-    if (!devAuth?.value) {
+    if (!accessToken?.value) {
         const loginUrl = new URL('/auth', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return NextResponse.redirect(loginUrl);

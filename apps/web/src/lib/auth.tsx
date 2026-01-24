@@ -3,20 +3,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Dev mode - uses localStorage instead of Supabase
-const DEV_MODE = true;
+// Real Auth
+const DEV_MODE = false;
 
-interface DevUser {
-    id: string;
+interface User {
+    id: string; // mapped from userId
     email: string;
     name?: string;
-    user_metadata?: {
-        name?: string;
-    };
 }
 
 interface AuthContextType {
-    user: DevUser | null;
+    user: User | null;
     loading: boolean;
     signOut: () => Promise<void>;
 }
@@ -27,54 +24,50 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
 });
 
-function getDevUser(): DevUser | null {
-    if (typeof window === 'undefined') return null;
-    const user = localStorage.getItem('dev_user');
-    if (user) {
-        const parsed = JSON.parse(user);
-        return {
-            ...parsed,
-            user_metadata: { name: parsed.name }
-        };
-    }
-    return null;
-}
-
-function clearDevUser() {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem('dev_user');
-    document.cookie = 'dev_auth=; path=/; max-age=0';
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<DevUser | null>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        if (DEV_MODE) {
-            // Dev mode - check localStorage
-            const devUser = getDevUser();
-            setUser(devUser);
-            setLoading(false);
+        const checkAuth = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                });
 
-            // Listen for storage changes (login/logout in other tabs)
-            const handleStorage = () => {
-                setUser(getDevUser());
-            };
-            window.addEventListener('storage', handleStorage);
-            return () => window.removeEventListener('storage', handleStorage);
-        }
+                if (res.ok) {
+                    const data = await res.json();
+                    setUser({
+                        id: data.userId,
+                        email: data.email,
+                        name: data.email.split('@')[0], // Fallback name
+                    });
+                } else {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        setLoading(false);
+        checkAuth();
     }, []);
 
     async function signOut() {
-        if (DEV_MODE) {
-            clearDevUser();
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+            });
             setUser(null);
-            router.push('/');
-            return;
+            router.push('/auth');
+        } catch (error) {
+            console.error('Logout failed:', error);
         }
     }
 

@@ -4,23 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './auth.module.css';
 
-// Dev mode auth - stores user in localStorage
-const DEV_MODE = true;
-
-function setDevUser(user: { id: string; email: string; name: string }) {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('dev_user', JSON.stringify(user));
-        document.cookie = `dev_auth=true; path=/; max-age=604800`; // 7 days
-    }
-}
-
-function getDevUser() {
-    if (typeof window !== 'undefined') {
-        const user = localStorage.getItem('dev_user');
-        return user ? JSON.parse(user) : null;
-    }
-    return null;
-}
+// Real auth
+const DEV_MODE = false;
 
 function AuthPageContent() {
     const router = useRouter();
@@ -32,13 +17,6 @@ function AuthPageContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Check if already logged in
-    useEffect(() => {
-        if (DEV_MODE && getDevUser()) {
-            router.push(redirectTo);
-        }
-    }, [router, redirectTo]);
-
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setIsLoading(true);
@@ -49,38 +27,31 @@ function AuthPageContent() {
         const password = formData.get('password') as string;
         const name = formData.get('name') as string;
 
-        // DEV MODE: Simple validation and immediate login
-        if (DEV_MODE) {
-            if (!email || !password) {
-                setError('Please enter email and password');
-                setIsLoading(false);
-                return;
+        try {
+            const endpoint = mode === 'signup' ? '/auth/signup' : '/auth/login';
+            const body = mode === 'signup'
+                ? { email, password, name: name || email.split('@')[0] }
+                : { email, password };
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                credentials: 'include', // Important for setting cookies
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || 'Authentication failed');
             }
 
-            if (password.length < 4) {
-                setError('Password must be at least 4 characters');
-                setIsLoading(false);
-                return;
-            }
-
-            // Create dev user
-            const devUser = {
-                id: `dev_${Date.now()}`,
-                email,
-                name: name || email.split('@')[0],
-            };
-
-            setDevUser(devUser);
-
-            // Small delay for UX
-            await new Promise(resolve => setTimeout(resolve, 500));
-
+            // Success - redirect
             router.push(redirectTo);
-            router.refresh();
-            return;
+            router.refresh(); // Refresh to update AuthProvider state
+        } catch (err: any) {
+            setError(err.message || 'Something went wrong');
+            setIsLoading(false);
         }
-
-        setIsLoading(false);
     }
 
     return (

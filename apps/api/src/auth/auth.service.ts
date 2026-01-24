@@ -40,7 +40,13 @@ export class AuthService {
             },
         });
 
-        return { userId: user.id, email: user.email };
+        const tokens = await this.generateTokens(user.id, user.email);
+
+        return {
+            userId: user.id,
+            email: user.email,
+            ...tokens,
+        };
     }
 
     async login(dto: LoginDto) {

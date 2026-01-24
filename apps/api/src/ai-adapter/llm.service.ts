@@ -1,12 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { LevelGuardService, Violation } from '../level-guard/level-guard.service';
+import { CEFRLevel } from '../level-guard/cefr-definitions';
 
 interface LessonContent {
     dialogue: Array<{ speaker: string; text: string; translation: string }>;
     pronunciationDrill: Array<{ word: string; phonetic: string; tip: string }>;
     grammarNote: { rule: string; examples: string[] };
     quiz: Array<{ type: 'cloze' | 'mcq'; question: string; answer: string; options?: string[] }>;
+}
+
+interface ValidatedLessonContent extends LessonContent {
+    levelViolations?: Violation[];
+    wasRewritten?: boolean;
 }
 
 interface PlacementAnalysis {
@@ -17,24 +24,34 @@ interface PlacementAnalysis {
 
 interface RoleplayResponse {
     text: string;
+    translation?: string;
     corrections: Array<{ error: string; correction: string; explanation: string }>;
+    levelViolations?: Violation[];
+    wasRewritten?: boolean;
 }
 
 @Injectable()
 export class LlmService {
+    private readonly logger = new Logger(LlmService.name);
     private genAI: GoogleGenerativeAI;
     private model: any;
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private levelGuard: LevelGuardService,
+    ) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (apiKey) {
+        if (apiKey && apiKey !== 'replace_me') {
             this.genAI = new GoogleGenerativeAI(apiKey);
             this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
         }
     }
 
-    async generateLesson(level: string, topic: string, userId?: string): Promise<LessonContent> {
+    async generateLesson(level: string, topic: string, userId?: string): Promise<ValidatedLessonContent> {
+        const cefrLevel = level as CEFRLevel;
         const prompt = `You are a German language teaching assistant. Create a lesson for CEFR level ${level} about "${topic}".
+
+IMPORTANT: Use ONLY vocabulary and grammar appropriate for ${level} level. Do not use advanced structures.
 
 Return a JSON object with this exact structure:
 {
@@ -61,14 +78,89 @@ Keep vocabulary and grammar appropriate for ${level}. Dialogue should be 4-6 exc
             const text = result.response.text();
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
+                let lessonContent: LessonContent = JSON.parse(jsonMatch[0]);
+
+                // Validate and filter content through Level Guard
+                const validated = await this.validateLessonContent(lessonContent, cefrLevel);
+                return validated;
             }
         } catch (error) {
-            console.error('LLM lesson generation failed:', error);
+            this.logger.error('LLM lesson generation failed:', error);
         }
 
         // Return fallback content
         return this.getFallbackLesson(level, topic);
+    }
+
+    /**
+     * Validate lesson content against user's CEFR level
+     */
+    private async validateLessonContent(
+        lesson: LessonContent,
+        level: CEFRLevel,
+    ): Promise<ValidatedLessonContent> {
+        const allViolations: Violation[] = [];
+        let wasRewritten = false;
+
+        // Validate dialogue
+        for (const exchange of lesson.dialogue) {
+            const validation = await this.levelGuard.validateAndFilterContent(
+                exchange.text,
+                level,
+                { rewriteOnViolation: true },
+            );
+            if (validation.wasModified) {
+                exchange.text = validation.content;
+                wasRewritten = true;
+            }
+            allViolations.push(...validation.violations);
+        }
+
+        // Validate pronunciation drill words
+        for (const drill of lesson.pronunciationDrill) {
+            const validation = this.levelGuard.validateContent({
+                userLevel: level,
+                contentTokens: [drill.word],
+            });
+            allViolations.push(...validation.violations);
+        }
+
+        // Validate grammar examples
+        for (const example of lesson.grammarNote.examples) {
+            const validation = await this.levelGuard.validateAndFilterContent(
+                example,
+                level,
+                { rewriteOnViolation: true },
+            );
+            if (validation.wasModified) {
+                const index = lesson.grammarNote.examples.indexOf(example);
+                lesson.grammarNote.examples[index] = validation.content;
+                wasRewritten = true;
+            }
+            allViolations.push(...validation.violations);
+        }
+
+        // Validate quiz questions
+        for (const quiz of lesson.quiz) {
+            const validation = await this.levelGuard.validateAndFilterContent(
+                quiz.question,
+                level,
+                { rewriteOnViolation: true },
+            );
+            if (validation.wasModified) {
+                quiz.question = validation.content;
+                wasRewritten = true;
+            }
+            allViolations.push(...validation.violations);
+        }
+
+        this.logViolations(level, allViolations);
+
+        return {
+            ...lesson,
+            levelViolations: allViolations.length > 0 ? allViolations : undefined,
+            wasRewritten: wasRewritten || undefined,
+        };
     }
 
     async analyzePlacement(transcripts: string): Promise<PlacementAnalysis> {
@@ -94,7 +186,7 @@ Base your assessment on vocabulary range, grammar accuracy, and complexity of ex
                 return JSON.parse(jsonMatch[0]);
             }
         } catch (error) {
-            console.error('LLM placement analysis failed:', error);
+            this.logger.error('LLM placement analysis failed:', error);
         }
 
         return { level: 'A1', confidence: 0.5, reasons: ['Unable to analyze - defaulting to A1'] };
@@ -106,9 +198,15 @@ Base your assessment on vocabulary range, grammar accuracy, and complexity of ex
         userMessage: string,
         conversationHistory: string[],
     ): Promise<RoleplayResponse> {
+        const cefrLevel = userLevel as CEFRLevel;
+        const levelDef = this.levelGuard.getLevelDefinition(cefrLevel);
+
         const prompt = `You are roleplaying as a German native speaker in this scenario: ${context}
 User's CEFR level: ${userLevel}
-Keep your vocabulary and grammar appropriate for their level.
+
+STRICT REQUIREMENT: Your response MUST use ONLY vocabulary and grammar appropriate for ${userLevel}.
+- Maximum ${levelDef.maxSentenceWords} words per sentence
+- Use simple structures appropriate for ${userLevel}
 
 Conversation so far:
 ${conversationHistory.join('\n')}
@@ -120,6 +218,7 @@ Respond naturally in German. Also identify any errors in the user's message.
 Return JSON:
 {
   "text": "Your German response",
+  "translation": "English translation of your response",
   "corrections": [
     {"error": "what they said wrong", "correction": "correct form", "explanation": "brief explanation"}
   ]
@@ -130,10 +229,29 @@ Return JSON:
             const text = result.response.text();
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
+                const response: RoleplayResponse = JSON.parse(jsonMatch[0]);
+
+                // Validate response through Level Guard
+                const validation = await this.levelGuard.validateAndFilterContent(
+                    response.text,
+                    cefrLevel,
+                    { rewriteOnViolation: true },
+                );
+
+                if (validation.wasModified) {
+                    response.text = validation.content;
+                    response.wasRewritten = true;
+                }
+
+                if (validation.violations.length > 0) {
+                    response.levelViolations = validation.violations;
+                    this.logViolations(cefrLevel, validation.violations);
+                }
+
+                return response;
             }
         } catch (error) {
-            console.error('LLM roleplay failed:', error);
+            this.logger.error('LLM roleplay failed:', error);
         }
 
         return {
@@ -159,19 +277,31 @@ Return empty array if no errors.`;
 
         try {
             const result = await this.model.generateContent(prompt);
-            const text = result.response.text();
-            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            const responseText = result.response.text();
+            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 return JSON.parse(jsonMatch[0]);
             }
         } catch (error) {
-            console.error('LLM grammar analysis failed:', error);
+            this.logger.error('LLM grammar analysis failed:', error);
         }
 
         return [];
     }
 
-    private getFallbackLesson(level: string, topic: string): LessonContent {
+    /**
+     * Log level violations for monitoring
+     */
+    private logViolations(level: CEFRLevel, violations: Violation[]): void {
+        if (violations.length > 0) {
+            this.logger.warn(
+                `Level Guard detected ${violations.length} violations for ${level} level:`,
+                violations.map(v => `${v.token} (${v.detectedLevel})`).join(', '),
+            );
+        }
+    }
+
+    private getFallbackLesson(level: string, topic: string): ValidatedLessonContent {
         return {
             dialogue: [
                 { speaker: 'Anna', text: 'Guten Tag!', translation: 'Good day!' },

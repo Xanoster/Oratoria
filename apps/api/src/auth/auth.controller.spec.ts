@@ -46,7 +46,11 @@ describe('AuthController', () => {
             const result = { userId: '123', email: signUpDto.email };
             mockAuthService.signUp.mockResolvedValue(result);
 
-            expect(await controller.signUp(signUpDto)).toEqual(result);
+            const mockRes = {
+                cookie: jest.fn(),
+            } as any;
+            expect(await controller.signUp(signUpDto, mockRes)).toEqual(result);
+            expect(mockRes.cookie).toHaveBeenCalled();
             expect(mockAuthService.signUp).toHaveBeenCalledWith(signUpDto);
         });
     });

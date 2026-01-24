@@ -1,22 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface HealthStatus {
+export interface HealthStatus {
     status: 'ok' | 'error';
     timestamp: string;
     uptime: number;
 }
 
-interface ServiceHealth {
+export interface ServiceHealth {
     status: 'ok' | 'error';
     latency?: number;
     error?: string;
 }
 
-interface DetailedHealth extends HealthStatus {
+export interface DetailedHealth extends HealthStatus {
     services: {
         database: ServiceHealth;
-        redis: ServiceHealth;
     };
 }
 
@@ -52,39 +51,15 @@ export class HealthService {
         }
     }
 
-    async checkRedis(): Promise<ServiceHealth> {
-        // Redis check via Bull queue connection
-        // For now, return a basic check
-        try {
-            // If Bull is configured, it would throw on startup if Redis is down
-            return {
-                status: 'ok',
-                latency: 0,
-            };
-        } catch (error) {
-            this.logger.error('Redis health check failed', error);
-            return {
-                status: 'error',
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
-        }
-    }
-
     async checkDetailed(): Promise<DetailedHealth> {
-        const [database, redis] = await Promise.all([
-            this.checkDatabase(),
-            this.checkRedis(),
-        ]);
-
-        const allOk = database.status === 'ok' && redis.status === 'ok';
+        const database = await this.checkDatabase();
 
         return {
-            status: allOk ? 'ok' : 'error',
+            status: database.status === 'ok' ? 'ok' : 'error',
             timestamp: new Date().toISOString(),
             uptime: Math.floor((Date.now() - this.startTime) / 1000),
             services: {
                 database,
-                redis,
             },
         };
     }

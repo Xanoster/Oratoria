@@ -1,40 +1,158 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
-import { Mic, MicOff, Volume2, Send, ArrowLeft } from 'lucide-react';
+import { Mic, MicOff, Volume2, ArrowLeft, Lightbulb, Pause, Play, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRecordControl } from '@/lib/hooks/useRecordControl';
 import { useTextToSpeech } from '@/lib/hooks/useSpeech';
-import { SCENARIOS } from '@/lib/ai/gemini';
 
-interface Message {
-    role: 'user' | 'ai';
-    message: string;
-    translation?: string;
-    correction?: string;
+interface Scenario {
+    id: string;
+    title: string;
+    context: string;
+    level: string;
+    userRole: string;
+    aiRole: string;
 }
 
-// Listening animation component
-function ListeningIndicator() {
+interface Correction {
+    error: string;
+    correction: string;
+    explanation: string;
+}
+
+interface Turn {
+    id: string;
+    turnNumber: number;
+    userMessage: string | null;
+    aiResponse: string;
+    aiTranslation: string | null;
+    corrections: Correction[];
+    hintRequested: boolean;
+    hintGiven: string | null;
+}
+
+interface Session {
+    id: string;
+    scenarioId: string;
+    scenario: {
+        title: string;
+        context: string;
+        userRole: string;
+        aiRole: string;
+    };
+    userLevel: string;
+    status: string;
+    hintsUsed: number;
+    totalErrors: number;
+    turns: Turn[];
+}
+
+interface CoachingData {
+    totalErrors: number;
+    errorsByType: Record<string, { count: number; examples: string[] }>;
+    practicePhrase: string;
+    recommendations: string[];
+}
+
+function CoachingModal({
+    coaching,
+    onResume,
+    onClose
+}: {
+    coaching: CoachingData;
+    onResume: () => void;
+    onClose: () => void;
+}) {
     return (
-        <div className="flex items-center gap-1">
-            <div className="w-1 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-            <div className="w-1 h-6 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-            <div className="w-1 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-            <div className="w-1 h-5 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
-            <div className="w-1 h-3 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#0F1729] border border-[#1E293B] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <h2 className="text-2xl font-bold text-white mb-2">📚 Coaching Session</h2>
+                <p className="text-slate-400 mb-6">Let's review your patterns and improve</p>
+
+                {/* Total Errors */}
+                <div className="bg-amber-900/20 border border-amber-600/30 rounded-lg p-4 mb-6">
+                    <div className="text-amber-400 text-sm font-medium">Total errors so far</div>
+                    <div className="text-3xl font-bold text-amber-300">{coaching.totalErrors}</div>
+                </div>
+
+                {/* Error Breakdown */}
+                {Object.keys(coaching.errorsByType).length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="text-white font-semibold mb-3">Error Patterns</h3>
+                        <div className="space-y-2">
+                            {Object.entries(coaching.errorsByType).map(([type, data]) => (
+                                <div key={type} className="bg-[#1E293B] rounded-lg p-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-white font-medium">{type.replace('-', ' ')}</span>
+                                        <span className="text-amber-400 text-sm">×{data.count}</span>
+                                    </div>
+                                    {data.examples.length > 0 && (
+                                        <div className="text-xs text-slate-400 space-y-1">
+                                            {data.examples.slice(0, 3).map((ex, i) => (
+                                                <div key={i}>• {ex}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Recommendations */}
+                {coaching.recommendations.length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="text-white font-semibold mb-3">💡 Recommendations</h3>
+                        <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4 space-y-2">
+                            {coaching.recommendations.map((rec, i) => (
+                                <div key={i} className="text-slate-300 text-sm">{rec}</div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Practice Phrase */}
+                <div className="mb-6">
+                    <h3 className="text-white font-semibold mb-3">🎯 Practice This</h3>
+                    <div className="bg-[#1E293B] rounded-lg p-4">
+                        <div className="text-white text-lg font-medium">{coaching.practicePhrase}</div>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                    <button
+                        onClick={onResume}
+                        className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition-all"
+                    >
+                        Resume Conversation
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="bg-[#1E293B] text-slate-400 rounded-lg px-4 py-3 hover:bg-[#2D3B4F] transition-all"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
 
 export default function RoleplayPage() {
-    const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
-    const [messages, setMessages] = useState<Message[]>([]);
+    const router = useRouter();
+    const [scenarios, setScenarios] = useState<Scenario[]>([]);
+    const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
+    const [session, setSession] = useState<Session | null>(null);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [userLevel] = useState('A1');
+    const [showCoaching, setShowCoaching] = useState(false);
+    const [coachingData, setCoachingData] = useState<CoachingData | null>(null);
+    const [expandedCorrections, setExpandedCorrections] = useState<Set<string>>(new Set());
 
-    // Use robust record control hook
     const {
         state: recordState,
         transcript,
@@ -46,107 +164,233 @@ export default function RoleplayPage() {
         onTranscript: (text) => {
             if (text.trim()) {
                 setInputText(text.trim());
-                // Auto-send happens in separate effect or here?
-                // For safety, let's just set input. 
-                // Wait, useRecordControl calls onTranscript ONLY when finished/stopped/processed.
-                // So this is the FINAL text. We can likely auto-send.
-                sendMessage(text.trim());
+                submitTurn(text.trim());
             }
         },
     });
 
-    // Sync live transcript to input
+    const { speak, isSpeaking } = useTextToSpeech();
+
+    const [error, setError] = useState<string | null>(null);
+
+    //  Sync live transcript
     useEffect(() => {
         if (recordState === 'recording' && transcript) {
             setInputText(transcript);
         }
     }, [recordState, transcript]);
 
-    const { speak, isSpeaking, stop: stopSpeaking } = useTextToSpeech();
-
-    // Start scenario with AI greeting
+    // Load scenarios
     useEffect(() => {
-        if (selectedScenario && messages.length === 0) {
-            const scenario = SCENARIOS[selectedScenario as keyof typeof SCENARIOS];
-            if (scenario) {
-                setMessages([{
-                    role: 'ai',
-                    message: scenario.starterDE,
-                    translation: scenario.starterEN,
-                }]);
-                setTimeout(() => speak(scenario.starterDE), 500);
+        async function loadScenarios() {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roleplay/scenarios`, {
+                    credentials: 'include'
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setScenarios(data.scenarios || []);
+                } else {
+                    setError('Failed to load scenarios. Please check your connection.');
+                }
+            } catch (error) {
+                console.error('Failed to load scenarios:', error);
+                setError('Failed to load scenarios. API may be unreachable.');
             }
         }
-    }, [selectedScenario, messages.length, speak]);
+        loadScenarios();
+    }, []);
 
-    const sendMessage = async (text: string) => {
-        if (!text.trim() || !selectedScenario || isLoading) return;
+    // Auto-speak AI greeting
+    useEffect(() => {
+        if (session && session.turns.length === 1 && session.turns[0].userMessage === null) {
+            setTimeout(() => speak(session.turns[0].aiResponse), 500);
+        }
+    }, [session, speak]);
 
-        const userMessage: Message = { role: 'user', message: text };
-        setMessages(prev => [...prev, userMessage]);
-        setInputText('');
+    async function startSession(scenarioId: string) {
         setIsLoading(true);
-
+        setError(null);
         try {
-            const res = await fetch('/api/ai/roleplay', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roleplay/sessions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
-                    scenarioId: selectedScenario,
-                    message: text,
-                    history: messages,
-                    level: userLevel,
+                    scenarioId,
+                    userLevel,
                 }),
             });
 
-            if (!res.ok) throw new Error('Failed to get response');
+            if (res.status === 401) {
+                router.push('/auth');
+                return;
+            }
 
-            const data = await res.json();
-            const aiMessage: Message = {
-                role: 'ai',
-                message: data.response,
-                translation: data.translation,
-                correction: data.correction,
-            };
-            setMessages(prev => [...prev, aiMessage]);
-            speak(data.response);
-        } catch (err) {
-            console.error('Roleplay error:', err);
-            setMessages(prev => [...prev, {
-                role: 'ai',
-                message: 'Entschuldigung, etwas ist schief gelaufen.',
-                translation: 'Sorry, something went wrong.',
-            }]);
+            if (!res.ok) {
+                const errorText = await res.text();
+                // try to parse json error if possible with fallback to text
+                let errorMessage = errorText;
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorMessage = errorJson.message || errorJson.error || errorText;
+                } catch (e) { }
+
+                throw new Error(errorMessage);
+            }
+
+            const data: Session = await res.json();
+            setSession(data);
+            setSelectedScenarioId(scenarioId);
+        } catch (error) {
+            console.error('Start session error:', error);
+            setError(`Failed to start session: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setIsLoading(false);
         }
-    };
+    }
 
-    const handleMicClick = () => {
-        if (recordState === 'recording') {
-            stopRecording();
-        } else {
-            startRecording();
+    async function submitTurn(message: string) {
+        if (!session || !message.trim() || isLoading) return;
+
+        setIsLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roleplay/sessions/${session.id}/turn`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userMessage: message }),
+            });
+
+            if (!res.ok) throw new Error('Failed to submit turn');
+
+            const turn: Turn = await res.json();
+
+            // Update session with new turn
+            setSession(prev => prev ? {
+                ...prev,
+                turns: [...prev.turns, turn],
+                totalErrors: prev.totalErrors + turn.corrections.length,
+            } : null);
+
+            setInputText('');
+            speak(turn.aiResponse);
+
+        } catch (error) {
+            console.error('Submit turn error:', error);
+            alert('Failed to send message. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }
+
+    async function getHint() {
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roleplay/sessions/${session.id}/hint`, {
+                credentials: 'include'
+            });
+            if (!res.ok) throw new Error('Failed to get hint');
+
+            const data = await res.json();
+
+            if (data.alreadyUsedThisTurn) {
+                alert('You already used your hint for this turn!');
+            } else {
+                alert(`💡 Hint: ${data.hint}`);
+                // Update session to reflect hint used
+                setSession(prev => prev ? { ...prev, hintsUsed: prev.hintsUsed + 1 } : null);
+            }
+        } catch (error) {
+            console.error('Get hint error:', error);
+        }
+    }
+
+    async function pauseSession() {
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roleplay/sessions/${session.id}/pause`, {
+                method: 'POST',
+            });
+            if (!res.ok) throw new Error('Failed to pause');
+
+            const data: CoachingData = await res.json();
+            setCoachingData(data);
+            setShowCoaching(true);
+            setSession(prev => prev ? { ...prev, status: 'paused' } : null);
+        } catch (error) {
+            console.error('Pause error:', error);
+        }
+    }
+
+    async function resumeSession() {
+        if (!session) return;
+
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/roleplay/sessions/${session.id}/resume`, {
+                method: 'POST',
+            });
+            if (!res.ok) throw new Error('Failed to resume');
+
+            const data: Session = await res.json();
+            setSession(data);
+            setShowCoaching(false);
+        } catch (error) {
+            console.error('Resume error:', error);
+        }
+    }
+
+    function toggleCorrections(turnId: string) {
+        setExpandedCorrections(prev => {
+            const next = new Set(prev);
+            if (next.has(turnId)) {
+                next.delete(turnId);
+            } else {
+                next.add(turnId);
+            }
+            return next;
+        });
+    }
 
     const isListening = recordState === 'recording';
-    const isProcessing = recordState === 'processing';
 
     // Scenario selection
-    if (!selectedScenario) {
+    if (!selectedScenarioId || !session) {
         return (
             <AppLayout>
                 <div className="min-h-screen p-8">
                     <div className="max-w-3xl mx-auto">
                         <h1 className="text-2xl font-bold text-white mb-2">🎭 Roleplay Scenarios</h1>
-                        <p className="text-slate-400 mb-8">Practice real-world German conversations with AI</p>
+                        <p className="text-slate-400 mb-8">Practice structured conversations with AI</p>
 
-                        <div className="grid gap-4">
-                            {Object.entries(SCENARIOS).map(([id, scenario]) => (
+                        {error && (
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 flex items-center justify-between">
+                                <span>{error}</span>
                                 <button
-                                    key={id}
-                                    onClick={() => setSelectedScenario(id)}
+                                    onClick={() => setError(null)}
+                                    className="text-red-400 hover:text-red-300"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        )}
+
+                        {isLoading && !session ? (
+                            <div className="text-center text-slate-400 py-12">Starting session...</div>
+                        ) : scenarios.length === 0 ? (
+                            <div className="text-center text-slate-400 py-12">
+                                <p className="mb-4">No scenarios available. Check console for errors.</p>
+                                <p className="text-sm text-slate-500">
+                                    API URL: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">{scenarios.map((scenario) => (
+                                <button
+                                    key={scenario.id}
+                                    onClick={() => startSession(scenario.id)}
                                     className="bg-[#0F1729] border border-[#1E293B] rounded-xl p-6 text-left hover:border-blue-600/50 hover:bg-[#0F1729]/80 transition-all"
                                 >
                                     <div className="flex justify-between items-start mb-2">
@@ -162,17 +406,24 @@ export default function RoleplayPage() {
                                     </div>
                                 </button>
                             ))}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </AppLayout>
         );
     }
 
-    const scenario = SCENARIOS[selectedScenario as keyof typeof SCENARIOS];
-
     return (
         <AppLayout>
+            {showCoaching && coachingData && (
+                <CoachingModal
+                    coaching={coachingData}
+                    onResume={resumeSession}
+                    onClose={() => setShowCoaching(false)}
+                />
+            )}
+
             <div className="min-h-screen flex flex-col">
                 {/* Header */}
                 <div className="bg-[#0F1729] border-b border-[#1E293B] px-6 py-4">
@@ -180,9 +431,8 @@ export default function RoleplayPage() {
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => {
-                                    setSelectedScenario(null);
-                                    setMessages([]);
-                                    stopSpeaking();
+                                    setSelectedScenarioId(null);
+                                    setSession(null);
                                     stopRecording();
                                 }}
                                 className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-[#1E293B]"
@@ -190,54 +440,98 @@ export default function RoleplayPage() {
                                 <ArrowLeft className="h-5 w-5" />
                             </button>
                             <div>
-                                <h1 className="text-lg font-semibold text-white">{scenario.title}</h1>
-                                <p className="text-sm text-slate-400">You: {scenario.userRole}</p>
+                                <h1 className="text-lg font-semibold text-white">{session.scenario.title}</h1>
+                                <p className="text-sm text-slate-400">Turn {session.turns.length}</p>
                             </div>
                         </div>
-                        {isListening && (
-                            <div className="flex items-center gap-2 text-red-400 text-sm">
-                                <ListeningIndicator />
-                                Listening...
-                            </div>
-                        )}
-                        {isProcessing && (
-                            <div className="flex items-center gap-2 text-blue-400 text-sm animate-pulse">
-                                Processing speech...
-                            </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            {session.totalErrors >= 3 && (
+                                <button
+                                    onClick={pauseSession}
+                                    className="flex items-center gap-2 px-4 py-2 bg-amber-600/20 text-amber-400 rounded-lg hover:bg-amber-600/30 transition-all border border-amber-600/30"
+                                    disabled={session.status === 'paused'}
+                                >
+                                    <Pause className="h-4 w-4" />
+                                    Pause & Coach
+                                </button>
+                            )}
+                            <button
+                                onClick={getHint}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-all border border-blue-600/30"
+                                disabled={isLoading}
+                            >
+                                <Lightbulb className="h-4 w-4" />
+                                Hint ({session.turns.length > 0 && session.turns[session.turns.length - 1]?.hintRequested ? '0' : '1'} left)
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Chat Messages */}
+                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                    {messages.map((msg, i) => (
-                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === 'user'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-[#1E293B] text-white'
-                                }`}>
-                                <p className="text-base">{msg.message}</p>
-                                {msg.translation && (
-                                    <p className="text-sm text-slate-300 mt-1 opacity-70 italic">{msg.translation}</p>
-                                )}
-                                {msg.correction && (
-                                    <p className="text-sm text-amber-400 mt-2 border-t border-slate-600 pt-2">
-                                        💡 {msg.correction}
-                                    </p>
-                                )}
-                                {msg.role === 'ai' && (
-                                    <button
-                                        onClick={() => speak(msg.message)}
-                                        className="mt-2 text-slate-400 hover:text-white flex items-center gap-1 text-xs"
-                                        disabled={isSpeaking}
-                                    >
-                                        <Volume2 className="h-4 w-4" />
-                                        {isSpeaking ? 'Speaking...' : 'Replay'}
-                                    </button>
-                                )}
+                    {session.turns.map((turn, i) => (
+                        <div key={turn.id} className="space-y-3">
+                            {/* User message */}
+                            {turn.userMessage && (
+                                <div className="flex justify-end">
+                                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white">
+                                        <p>{turn.userMessage}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* AI response */}
+                            <div className="flex justify-start">
+                                <div className="max-w-[80%] space-y-2">
+                                    <div className="rounded-2xl px-4 py-3 bg-[#1E293B] text-white">
+                                        <p className="text-base">{turn.aiResponse}</p>
+                                        {turn.aiTranslation && (
+                                            <p className="text-sm text-slate-300 mt-1 opacity-70 italic">{turn.aiTranslation}</p>
+                                        )}
+                                        <button
+                                            onClick={() => speak(turn.aiResponse)}
+                                            className="mt-2 text-slate-400 hover:text-white flex items-center gap-1 text-xs"
+                                            disabled={isSpeaking}
+                                        >
+                                            <Volume2 className="h-4 w-4" />
+                                            Replay
+                                        </button>
+                                    </div>
+
+                                    {/* Corrections (collapsible) */}
+                                    {turn.corrections && turn.corrections.length > 0 && (
+                                        <div className="bg-amber-900/20 border border-amber-600/30 rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => toggleCorrections(turn.id)}
+                                                className="w-full px-4 py-2 flex items-center justify-between text-amber-400 hover:bg-amber-900/30 transition-all"
+                                            >
+                                                <span className="text-sm font-medium">
+                                                    {turn.corrections.length} correction{turn.corrections.length > 1 ? 's' : ''}
+                                                </span>
+                                                {expandedCorrections.has(turn.id) ? (
+                                                    <ChevronUp className="h-4 w-4" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4" />
+                                                )}
+                                            </button>
+                                            {expandedCorrections.has(turn.id) && (
+                                                <div className="px-4 py-3 space-y-2 border-t border-amber-600/20">
+                                                    {turn.corrections.map((corr, idx) => (
+                                                        <div key={idx} className="text-sm">
+                                                            <div className="text-red-400">❌ {corr.error}</div>
+                                                            <div className="text-green-400">✓ {corr.correction}</div>
+                                                            <div className="text-slate-300 text-xs mt-1">{corr.explanation}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}
+
                     {isLoading && (
                         <div className="flex justify-start">
                             <div className="bg-[#1E293B] rounded-2xl px-4 py-3">
@@ -253,47 +547,27 @@ export default function RoleplayPage() {
 
                 {/* Input Area */}
                 <div className="bg-[#0F1729] border-t border-[#1E293B] p-4">
-                    {/* Listening indicator */}
-                    {isListening && (
-                        <div className="flex items-center justify-center gap-3 mb-3 py-2 px-4 bg-red-900/20 border border-red-600/30 rounded-lg">
-                            <span className="text-red-400 text-sm font-medium">
-                                🎤 Listening...
-                            </span>
-                        </div>
-                    )}
-
                     <div className="flex gap-3">
                         <input
                             type="text"
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && !isLoading && sendMessage(inputText)}
-                            placeholder={isListening ? "Listening..." : "Type in German or use the mic..."}
+                            onKeyDown={(e) => e.key === 'Enter' && !isLoading && submitTurn(inputText)}
+                            placeholder={isListening ? "Listening..." : "Type in German..."}
                             className="flex-1 bg-[#1E293B] border border-[#2D3B4F] rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-all"
-                            disabled={isListening || isProcessing}
+                            disabled={isListening || isLoading || session.status !== 'active'}
                         />
                         <button
-                            onClick={handleMicClick}
-                            disabled={isProcessing}
+                            onClick={() => isListening ? stopRecording() : startRecording()}
+                            disabled={isLoading}
                             className={`p-3 rounded-xl transition-all ${isListening
-                                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30 scale-110'
+                                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
                                 : 'bg-[#1E293B] text-slate-400 hover:text-white hover:bg-[#2D3B4F]'
                                 }`}
                         >
                             {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                         </button>
-                        <button
-                            onClick={() => sendMessage(inputText)}
-                            disabled={!inputText.trim() || isLoading || isListening}
-                            className="p-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Send className="h-5 w-5" />
-                        </button>
                     </div>
-
-                    <p className="text-xs text-slate-500 mt-3 text-center">
-                        🎤 Click mic to start
-                    </p>
                 </div>
             </div>
         </AppLayout>

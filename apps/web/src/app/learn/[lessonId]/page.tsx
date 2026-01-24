@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Volume2 } from 'lucide-react';
+import { Volume2, ChevronDown } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import styles from './lesson.module.css';
 import RecordControl from '@/components/RecordControl';
-import AudioPlayer from '@/components/AudioPlayer';
+import PronunciationFeedbackModal, { PhonemeError } from '@/components/PronunciationFeedbackModal';
 import { useTextToSpeech } from '@/lib/hooks/useSpeech';
 
 interface LessonContent {
@@ -17,7 +17,23 @@ interface LessonContent {
     quiz: Array<{ type: string; question: string; answer: string; options?: string[] }>;
 }
 
+interface EvaluationResult {
+    overallScore: number;
+    pronunciationScore: number;
+    grammarScore: number;
+    fluencyScore: number;
+    confidence: number;
+    detectedErrors: Array<{
+        type: 'pronunciation' | 'grammar' | 'fluency';
+        token: string;
+        expected: string;
+        explanation: string;
+    }>;
+}
+
 type LessonPhase = 'intro' | 'pronunciation' | 'grammar' | 'speak' | 'quiz' | 'complete';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function LessonPage() {
     const params = useParams();
@@ -27,16 +43,25 @@ export default function LessonPage() {
     const [phase, setPhase] = useState<LessonPhase>('intro');
     const [content, setContent] = useState<LessonContent | null>(null);
     const [loading, setLoading] = useState(true);
-    const [showGrammar, setShowGrammar] = useState(false);
+    const [showGrammar, setShowGrammar] = useState(false); // Collapsed by default
     const [quizIndex, setQuizIndex] = useState(0);
     const [quizAnswer, setQuizAnswer] = useState('');
     const [quizResult, setQuizResult] = useState<'correct' | 'incorrect' | null>(null);
     const { speak } = useTextToSpeech();
 
+    // AI Evaluation State
+    const [currentPrompt, setCurrentPrompt] = useState('');
+    const [userTranscript, setUserTranscript] = useState('');
+    const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
+    const [userErrors, setUserErrors] = useState<string[]>([]);
+    const [phonemeErrors, setPhonemeErrors] = useState<PhonemeError[]>([]);
+
     useEffect(() => {
         async function fetchLesson() {
             try {
-                const res = await fetch(`/api/v1/lessons/${lessonId}/content`, {
+                const res = await fetch(`${API_URL}/api/v1/lessons/${lessonId}/content`, {
                     credentials: 'include',
                 });
 
@@ -76,14 +101,98 @@ export default function LessonPage() {
         fetchLesson();
     }, [lessonId]);
 
+    // Set speaking prompt based on user errors (adaptive)
+    useEffect(() => {
+        if (phase === 'speak' && content) {
+            // If user has pronunciation errors, focus on those words
+            if (userErrors.length > 0) {
+                const errorWord = userErrors[0];
+                setCurrentPrompt(`Practice saying: "${errorWord}"`);
+            } else {
+                // Default prompt
+                setCurrentPrompt('Guten Tag! Wie geht es Ihnen?');
+            }
+        }
+    }, [phase, content, userErrors]);
+
     function handlePronunciationComplete() {
         setPhase('grammar');
     }
 
-    function handleSpeakComplete(transcript: string) {
-        // Submit for analysis
-        console.log('User spoke:', transcript);
+    async function handleSpeakComplete(transcript: string) {
+        setUserTranscript(transcript);
+
+        // Call EvaluationEngine
+        try {
+            const res = await fetch(`${API_URL}/api/v1/evaluation`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    userId: 'current-user',
+                    transcript,
+                    expectedText: currentPrompt.replace(/^Practice saying: "(.+)"$/, '$1').replace(/"/g, ''),
+                    userLevel: 'A1',
+                    mode: 'lesson',
+                }),
+            });
+
+            if (res.ok) {
+                const evalResult = await res.json();
+                setEvaluation(evalResult);
+
+                // Track errors for adaptive prompts
+                const newErrors = evalResult.detectedErrors
+                    .filter((e: any) => e.type === 'pronunciation')
+                    .map((e: any) => e.token);
+                setUserErrors(prev => [...new Set([...prev, ...newErrors])]);
+
+                // Extract phoneme errors with tips from drill content
+                const extractedPhonemeErrors: PhonemeError[] = evalResult.detectedErrors
+                    .filter((e: any) => e.type === 'pronunciation')
+                    .slice(0, 3) // Focus on 2-3 max
+                    .map((e: any) => {
+                        // Try to find matching drill for phonetic info
+                        const drill = content?.pronunciationDrill.find(
+                            d => d.word.toLowerCase() === e.token.toLowerCase()
+                        );
+                        return {
+                            word: e.token,
+                            phoneme: drill?.phonetic || '',
+                            expected: e.expected || e.token,
+                            actual: e.token,
+                            tip: drill?.tip || e.explanation || 'Practice this word.',
+                        };
+                    });
+                setPhonemeErrors(extractedPhonemeErrors);
+
+                // Show feedback modal
+                setShowFeedbackModal(true);
+            } else {
+                // Fallback - proceed without evaluation
+                setPhase('quiz');
+            }
+        } catch (error) {
+            console.error('Evaluation failed:', error);
+            setPhase('quiz');
+        }
+    }
+
+    function handleRetry() {
+        setShowFeedbackModal(false);
+        setRetryCount(prev => prev + 1);
+        setUserTranscript('');
+        setEvaluation(null);
+    }
+
+    function handleContinueAfterSpeaking() {
+        setShowFeedbackModal(false);
         setPhase('quiz');
+    }
+
+    function handlePracticeError(errorToken: string) {
+        // Speak the word for the user to hear
+        speak(errorToken);
     }
 
     function handleQuizSubmit() {
@@ -215,33 +324,36 @@ export default function LessonPage() {
                             </section>
                         )}
 
-                        {/* Grammar Phase */}
+                        {/* Grammar Phase - Collapsed by Default */}
                         {phase === 'grammar' && (
                             <section className={styles.section}>
                                 <h2>Grammar Note</h2>
 
-                                <div className={styles.grammarCard}>
-                                    <p className={styles.grammarRule}>{content.grammarNote.rule}</p>
-                                    <div className={styles.grammarExamples}>
-                                        {content.grammarNote.examples.map((ex, i) => (
-                                            <div key={i} className={styles.grammarExample}>{ex}</div>
-                                        ))}
-                                    </div>
-                                </div>
-
+                                {/* Collapsible Grammar */}
                                 <button
-                                    className={styles.explainBtn}
                                     onClick={() => setShowGrammar(!showGrammar)}
+                                    className="w-full flex items-center justify-between p-4 rounded-lg bg-[#0F1729] border border-[#1E293B] text-left mb-4"
                                 >
-                                    {showGrammar ? 'Hide' : 'Explain'} rule
+                                    <span className="text-slate-300">{content.grammarNote.rule}</span>
+                                    <ChevronDown
+                                        size={18}
+                                        className={`text-slate-400 transition-transform ${showGrammar ? 'rotate-180' : ''}`}
+                                    />
                                 </button>
 
                                 {showGrammar && (
-                                    <div className={styles.grammarDetail}>
-                                        <p>
-                                            In German, "Sie" (formal you) is always capitalized to distinguish it from
-                                            "sie" (she/they). It takes the same verb forms as "sie" (they) - third person plural.
-                                        </p>
+                                    <div className={styles.grammarCard}>
+                                        <div className={styles.grammarExamples}>
+                                            {content.grammarNote.examples.map((ex, i) => (
+                                                <div key={i} className={styles.grammarExample}>{ex}</div>
+                                            ))}
+                                        </div>
+                                        <div className={styles.grammarDetail}>
+                                            <p>
+                                                In German, "Sie" (formal you) is always capitalized to distinguish it from
+                                                "sie" (she/they). It takes the same verb forms as "sie" (they) - third person plural.
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
@@ -255,17 +367,26 @@ export default function LessonPage() {
                             </section>
                         )}
 
-                        {/* Speak Phase */}
+                        {/* Speak Phase - With AI Evaluation */}
                         {phase === 'speak' && (
                             <section className={styles.section}>
                                 <h2>Speaking Task</h2>
                                 <p className="text-muted mb-6">
-                                    Practice greeting someone formally. Say the phrase below:
+                                    {userErrors.length > 0
+                                        ? 'Practice this word based on previous errors:'
+                                        : 'Practice greeting someone formally. Say the phrase below:'
+                                    }
                                 </p>
 
                                 <div className={styles.speakPrompt}>
-                                    "Guten Tag! Wie geht es Ihnen?"
+                                    "{currentPrompt}"
                                 </div>
+
+                                {retryCount > 0 && (
+                                    <p className="text-sm text-amber-400 mb-4">
+                                        Attempt {retryCount + 1}
+                                    </p>
+                                )}
 
                                 <div className={styles.recordContainer}>
                                     <RecordControl
@@ -325,7 +446,7 @@ export default function LessonPage() {
 
                                         {quizResult && (
                                             <div className={`${styles.quizFeedback} ${styles[quizResult]}`}>
-                                                {quizResult === 'correct' ? '✓ Correct!' : `✗ The answer is: ${content.quiz[quizIndex].answer}`}
+                                                {quizResult === 'correct' ? 'Correct' : `Answer: ${content.quiz[quizIndex].answer}`}
                                             </div>
                                         )}
 
@@ -348,19 +469,29 @@ export default function LessonPage() {
                         {phase === 'complete' && (
                             <section className={styles.section}>
                                 <div className={styles.complete}>
-                                    <div className={styles.completeIcon}>🎉</div>
-                                    <h2>Lesson Complete!</h2>
+                                    <h2>Lesson Complete</h2>
                                     <p className="text-muted mb-6">
-                                        Great work! You've practiced greetings and formal speech.
+                                        You've practiced greetings and formal speech.
                                     </p>
+
+                                    {userErrors.length > 0 && (
+                                        <div className="mb-6 p-4 rounded-lg bg-amber-950/30 border border-amber-800/40">
+                                            <p className="text-sm text-amber-200 mb-2">
+                                                Words to review: {userErrors.slice(0, 3).join(', ')}
+                                            </p>
+                                            <button
+                                                className="text-sm text-amber-400 hover:text-amber-300"
+                                                onClick={() => router.push('/review')}
+                                            >
+                                                Practice these →
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <div className={styles.completeActions}>
                                         <Link href="/learn" className="btn btn-primary btn-lg">
-                                            Finish session
+                                            Finish
                                         </Link>
-                                        <button className="btn btn-secondary">
-                                            Practice top error
-                                        </button>
                                     </div>
                                 </div>
                             </section>
@@ -368,6 +499,21 @@ export default function LessonPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Pronunciation Feedback Modal */}
+            {evaluation && (
+                <PronunciationFeedbackModal
+                    isOpen={showFeedbackModal}
+                    onClose={() => setShowFeedbackModal(false)}
+                    evaluationResult={evaluation}
+                    phonemeErrors={phonemeErrors}
+                    expectedText={currentPrompt.replace(/^Practice saying: "(.+)"$/, '$1').replace(/"/g, '')}
+                    userTranscript={userTranscript}
+                    onRetry={handleRetry}
+                    onContinue={handleContinueAfterSpeaking}
+                    onSpeak={speak}
+                />
+            )}
         </AppLayout>
     );
 }

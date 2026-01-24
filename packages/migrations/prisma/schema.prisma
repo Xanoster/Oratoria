@@ -1,6 +1,3 @@
-// Prisma schema for Oratoria
-// Database: PostgreSQL with pgvector extension
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,25 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// User & Auth
-// ============================================
-
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String?   @map("password_hash")
-  name         String?
-  prefs        Json      @default("{}")
-  isDeleted    Boolean   @default(false) @map("is_deleted")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  lastLogin    DateTime? @map("last_login")
-
-  sessions        Session[]
-  recordings      Recording[]
-  srsItems        SrsItem[]
-  embeddings      Embedding[]
-  analyticsEvents AnalyticsEvent[]
+  id               String            @id @default(uuid())
+  email            String            @unique
+  passwordHash     String?           @map("password_hash")
+  name             String?
+  prefs            Json              @default("{}")
+  isDeleted        Boolean           @default(false) @map("is_deleted")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  lastLogin        DateTime?         @map("last_login")
+  analyticsEvents  AnalyticsEvent[]
+  embeddings       Embedding[]
+  evaluations      Evaluation[]
+  recordings       Recording[]
+  roleplaySessions RoleplaySession[]
+  sessions         Session[]
+  srsItems         SrsItem[]
 
   @@map("users")
 }
@@ -39,47 +33,37 @@ model Session {
   jwtRefresh String   @map("jwt_refresh")
   createdAt  DateTime @default(now()) @map("created_at")
   expiresAt  DateTime @map("expires_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("sessions")
 }
 
-// ============================================
-// Content & Lessons
-// ============================================
-
 model Lesson {
-  id        String   @id @default(uuid())
-  level     String   // A0, A1, A2, B1, B2
-  title     String
-  content   Json     // dialogue, drills, quiz
-  createdBy String?  @map("created_by")
-  createdAt DateTime @default(now()) @map("created_at")
-
+  id         String      @id @default(uuid())
+  level      String
+  title      String
+  content    Json
+  createdBy  String?     @map("created_by")
+  createdAt  DateTime    @default(now()) @map("created_at")
   recordings Recording[]
 
   @@index([level])
   @@map("lessons")
 }
 
-// ============================================
-// Recordings & Analysis
-// ============================================
-
 model Recording {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  lessonId  String?  @map("lesson_id")
-  promptId  String?  @map("prompt_id")
-  transcript String?
-  status    String   @default("received") // received, processing, done, failed
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson   Lesson?   @relation(fields: [lessonId], references: [id])
-  analysis Analysis?
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  lessonId    String?      @map("lesson_id")
+  promptId    String?      @map("prompt_id")
+  transcript  String?
+  status      String       @default("received")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  analysis    Analysis?
+  evaluations Evaluation[]
+  lesson      Lesson?      @relation(fields: [lessonId], references: [id])
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
@@ -87,63 +71,52 @@ model Recording {
 }
 
 model Analysis {
-  id                 String   @id @default(uuid())
-  recordingId        String   @unique @map("recording_id")
-  pronunciationScore Float?   @map("pronunciation_score")
-  phonemeScores      Json?    @map("phoneme_scores")
-  grammarIssues      Json?    @map("grammar_issues")
-  llmConfidence      Float?   @map("llm_confidence")
-  createdAt          DateTime @default(now()) @map("created_at")
-
-  recording Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(uuid())
+  recordingId        String    @unique @map("recording_id")
+  pronunciationScore Float?    @map("pronunciation_score")
+  phonemeScores      Json?     @map("phoneme_scores")
+  grammarIssues      Json?     @map("grammar_issues")
+  llmConfidence      Float?    @map("llm_confidence")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  recording          Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
 
   @@map("analyses")
 }
 
-// ============================================
-// Spaced Repetition System
-// ============================================
-
 model SrsItem {
-  id           String    @id @default(uuid())
-  userId       String    @map("user_id")
-  itemType     String    @map("item_type") // vocab, grammar_pattern, sentence
-  content      Json
-  lastReviewed DateTime? @map("last_reviewed")
-  easeFactor   Float     @default(2.5) @map("ease_factor")
-  intervalDays Int       @default(1) @map("interval_days")
-  dueAt        DateTime  @map("due_at")
-  reviewCount  Int       @default(0) @map("review_count")
-  priority     Int       @default(0)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(uuid())
+  userId             String    @map("user_id")
+  itemType           String    @map("item_type")
+  content            Json
+  lastReviewed       DateTime? @map("last_reviewed")
+  easeFactor         Float     @default(2.5) @map("ease_factor")
+  intervalDays       Int       @default(1) @map("interval_days")
+  dueAt              DateTime  @map("due_at")
+  reviewCount        Int       @default(0) @map("review_count")
+  priority           Int       @default(0)
+  failureCount       Int       @default(0) @map("failure_count")
+  explanation        String?
+  requiresSpoken     Boolean   @default(false) @map("requires_spoken")
+  sourceEvaluationId String?   @map("source_evaluation_id")
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, dueAt])
   @@index([priority])
+  @@index([failureCount])
   @@map("srs_items")
 }
-
-// ============================================
-// RAG / Vector Embeddings
-// ============================================
 
 model Embedding {
   id             String   @id @default(uuid())
   docId          String   @map("doc_id")
   userId         String?  @map("user_id")
   contentSnippet String   @map("content_snippet")
-  // Note: embedding vector stored via raw SQL with pgvector
   createdAt      DateTime @default(now()) @map("created_at")
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([docId])
   @@map("embeddings")
 }
-
-// ============================================
-// Analytics
-// ============================================
 
 model AnalyticsEvent {
   id        String   @id @default(uuid())
@@ -151,10 +124,77 @@ model AnalyticsEvent {
   eventType String   @map("event_type")
   payload   Json     @default("{}")
   createdAt DateTime @default(now()) @map("created_at")
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, eventType])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+model Evaluation {
+  id                 String         @id @default(uuid())
+  userId             String         @map("user_id")
+  recordingId        String?        @map("recording_id")
+  transcript         String
+  expectedText       String?        @map("expected_text")
+  userLevel          String         @map("user_level")
+  mode               String
+  overallScore       Float          @map("overall_score")
+  pronunciationScore Float          @map("pronunciation_score")
+  grammarScore       Float          @map("grammar_score")
+  fluencyScore       Float          @map("fluency_score")
+  detectedErrors     Json           @default("[]") @map("detected_errors")
+  confidence         Float          @default(0)
+  status             String         @default("pending")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  recording          Recording?     @relation(fields: [recordingId], references: [id])
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleplayTurns      RoleplayTurn[]
+
+  @@index([userId])
+  @@index([userId, mode])
+  @@index([status])
+  @@map("evaluations")
+}
+
+model RoleplaySession {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  scenarioId      String   @map("scenario_id")
+  userLevel       String   @map("user_level") // A0, A1, A2, B1, B2
+  status          String   @default("active") // active, paused, completed
+  hintsUsed       Int      @default(0) @map("hints_used")
+  totalErrors     Int      @default(0) @map("total_errors")
+  errorTracker    Json     @default("{}") @map("error_tracker") // { errorType: { count, examples[] } }
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  turns RoleplayTurn[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([scenarioId])
+  @@map("roleplay_sessions")
+}
+
+model RoleplayTurn {
+  id            String          @id @default(uuid())
+  sessionId     String          @map("session_id")
+  turnNumber    Int             @map("turn_number")
+  userMessage   String?         @map("user_message")
+  aiResponse    String          @map("ai_response")
+  aiTranslation String?         @map("ai_translation")
+  corrections   Json            @default("[]")
+  errors        Json            @default("[]")
+  evaluationId  String?         @map("evaluation_id")
+  hintRequested Boolean         @default(false) @map("hint_requested")
+  hintGiven     String?         @map("hint_given")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  evaluation    Evaluation?     @relation(fields: [evaluationId], references: [id])
+  session       RoleplaySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([sessionId, turnNumber])
+  @@map("roleplay_turns")
 }

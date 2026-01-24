@@ -69,10 +69,9 @@ describe('HealthService', () => {
 
             expect(result.status).toBeDefined();
             expect(result.services.database).toBeDefined();
-            expect(result.services.redis).toBeDefined();
         });
 
-        it('should return error status when any service is down', async () => {
+        it('should return error status when database is down', async () => {
             mockPrismaService.$queryRaw.mockRejectedValue(new Error('DB down'));
 
             const result = await service.checkDetailed();
