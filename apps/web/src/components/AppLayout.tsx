@@ -8,9 +8,9 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
     return (
-        <div className="min-h-screen bg-[#0A0E1A]">
+        <div className="min-h-screen bg-[#0A0E1A] flex">
             <Sidebar />
-            <main className="ml-64 min-h-screen">
+            <main className="flex-1 min-w-0">
                 {children}
             </main>
         </div>

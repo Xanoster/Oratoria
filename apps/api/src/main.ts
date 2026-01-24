@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
@@ -18,6 +19,9 @@ async function bootstrap() {
     // Cookie parser for JWT in cookies
     app.use(cookieParser());
 
+    // Global exception filter for standardized error responses
+    app.useGlobalFilters(new GlobalExceptionFilter());
+
     // Global validation pipe
     app.useGlobalPipes(
         new ValidationPipe({
@@ -31,6 +35,8 @@ async function bootstrap() {
     await app.listen(port);
 
     console.log(`🚀 API running on http://localhost:${port}/api/v1`);
+    console.log(`📊 Health check: http://localhost:${port}/api/v1/health`);
 }
 
 bootstrap();
+

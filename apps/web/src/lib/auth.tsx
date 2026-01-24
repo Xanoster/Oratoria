@@ -2,11 +2,21 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
+
+// Dev mode - uses localStorage instead of Supabase
+const DEV_MODE = true;
+
+interface DevUser {
+    id: string;
+    email: string;
+    name?: string;
+    user_metadata?: {
+        name?: string;
+    };
+}
 
 interface AuthContextType {
-    user: User | null;
+    user: DevUser | null;
     loading: boolean;
     signOut: () => Promise<void>;
 }
@@ -17,31 +27,55 @@ const AuthContext = createContext<AuthContextType>({
     signOut: async () => { },
 });
 
+function getDevUser(): DevUser | null {
+    if (typeof window === 'undefined') return null;
+    const user = localStorage.getItem('dev_user');
+    if (user) {
+        const parsed = JSON.parse(user);
+        return {
+            ...parsed,
+            user_metadata: { name: parsed.name }
+        };
+    }
+    return null;
+}
+
+function clearDevUser() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('dev_user');
+    document.cookie = 'dev_auth=; path=/; max-age=0';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<DevUser | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
-    const supabase = createClient();
 
     useEffect(() => {
-        // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
+        if (DEV_MODE) {
+            // Dev mode - check localStorage
+            const devUser = getDevUser();
+            setUser(devUser);
             setLoading(false);
-        });
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-            setLoading(false);
-        });
+            // Listen for storage changes (login/logout in other tabs)
+            const handleStorage = () => {
+                setUser(getDevUser());
+            };
+            window.addEventListener('storage', handleStorage);
+            return () => window.removeEventListener('storage', handleStorage);
+        }
 
-        return () => subscription.unsubscribe();
+        setLoading(false);
     }, []);
 
     async function signOut() {
-        await supabase.auth.signOut();
-        router.push('/');
+        if (DEV_MODE) {
+            clearDevUser();
+            setUser(null);
+            router.push('/');
+            return;
+        }
     }
 
     return (
@@ -57,7 +91,6 @@ export function useAuth() {
 
 // Helper to generate avatar URL based on email or user ID
 export function getAvatarUrl(identifier: string): string {
-    // Using DiceBear API for random avatars
     const encodedId = encodeURIComponent(identifier);
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodedId}&backgroundColor=0A0E1A`;
 }

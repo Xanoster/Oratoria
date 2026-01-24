@@ -12,6 +12,7 @@ import { RagModule } from './rag/rag.module';
 import { AiAdapterModule } from './ai-adapter/ai-adapter.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
     imports: [
@@ -43,6 +44,7 @@ import { PrismaModule } from './prisma/prisma.module';
         RagModule,
         AiAdapterModule,
         NotificationsModule,
+        HealthModule,
     ],
 })
 export class AppModule { }

@@ -2,8 +2,25 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import styles from './auth.module.css';
+
+// Dev mode auth - stores user in localStorage
+const DEV_MODE = true;
+
+function setDevUser(user: { id: string; email: string; name: string }) {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('dev_user', JSON.stringify(user));
+        document.cookie = `dev_auth=true; path=/; max-age=604800`; // 7 days
+    }
+}
+
+function getDevUser() {
+    if (typeof window !== 'undefined') {
+        const user = localStorage.getItem('dev_user');
+        return user ? JSON.parse(user) : null;
+    }
+    return null;
+}
 
 function AuthPageContent() {
     const router = useRouter();
@@ -14,7 +31,13 @@ function AuthPageContent() {
     const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+    // Check if already logged in
+    useEffect(() => {
+        if (DEV_MODE && getDevUser()) {
+            router.push(redirectTo);
+        }
+    }, [router, redirectTo]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -26,87 +49,38 @@ function AuthPageContent() {
         const password = formData.get('password') as string;
         const name = formData.get('name') as string;
 
-        const supabase = createClient();
-
-        try {
-            if (mode === 'signup') {
-                if (password.length < 8) {
-                    throw new Error('Password must be at least 8 characters');
-                }
-
-                const { data, error: signUpError } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: { name },
-                    },
-                });
-
-                if (signUpError) throw signUpError;
-                if (data.user) {
-                    router.push(redirectTo);
-                    router.refresh();
-                }
-            } else {
-                const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
-
-                if (signInError) throw signInError;
-                if (data.user) {
-                    router.push(redirectTo);
-                    router.refresh();
-                }
+        // DEV MODE: Simple validation and immediate login
+        if (DEV_MODE) {
+            if (!email || !password) {
+                setError('Please enter email and password');
+                setIsLoading(false);
+                return;
             }
-        } catch (err: any) {
-            setError(err.message || (mode === 'signup' ? 'Failed to create account' : 'Invalid credentials'));
-        } finally {
-            setIsLoading(false);
-        }
-    }
 
-    async function handleMagicLink(email: string) {
-        setIsLoading(true);
-        setError('');
+            if (password.length < 4) {
+                setError('Password must be at least 4 characters');
+                setIsLoading(false);
+                return;
+            }
 
-        const supabase = createClient();
-
-        try {
-            const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+            // Create dev user
+            const devUser = {
+                id: `dev_${Date.now()}`,
                 email,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${redirectTo}`,
-                },
-            });
+                name: name || email.split('@')[0],
+            };
 
-            if (magicLinkError) throw magicLinkError;
-            setMagicLinkSent(true);
-        } catch (err: any) {
-            setError(err.message || 'Failed to send magic link');
-        } finally {
-            setIsLoading(false);
+            setDevUser(devUser);
+
+            // Small delay for UX
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            router.push(redirectTo);
+            router.refresh();
+            return;
         }
-    }
 
-    if (magicLinkSent) {
-        return (
-            <main className={styles.main}>
-                <div className={styles.card}>
-                    <div className={styles.iconLarge}>✉️</div>
-                    <h1>Check your email</h1>
-                    <p className="text-muted text-center">
-                        We've sent you a magic link. Click it to log in.
-                    </p>
-                    <button
-                        className="btn btn-secondary mt-4"
-                        onClick={() => setMagicLinkSent(false)}
-                    >
-                        Try again
-                    </button>
-                </div>
-            </main>
-        );
+        setIsLoading(false);
     }
 
     return (
@@ -118,6 +92,12 @@ function AuthPageContent() {
                         ? 'Start your German learning journey'
                         : 'Log in to continue learning'}
                 </p>
+
+                {DEV_MODE && (
+                    <div className="text-xs text-green-400 bg-green-900/20 border border-green-600/30 rounded-lg px-3 py-2 mb-4 text-center">
+                        🛠️ Dev Mode - Any email/password works
+                    </div>
+                )}
 
                 {/* Mode Toggle */}
                 <div className={styles.modeToggle}>
@@ -168,6 +148,7 @@ function AuthPageContent() {
                             required
                             className="input"
                             placeholder="you@example.com"
+                            defaultValue="dev@example.com"
                         />
                     </div>
 
@@ -178,9 +159,10 @@ function AuthPageContent() {
                             name="password"
                             type="password"
                             required
-                            minLength={8}
+                            minLength={4}
                             className="input"
-                            placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
+                            placeholder={mode === 'signup' ? 'At least 4 characters' : '••••••••'}
+                            defaultValue="dev123"
                         />
                     </div>
 
@@ -195,30 +177,6 @@ function AuthPageContent() {
                             : (mode === 'signup' ? 'Create account' : 'Log in')}
                     </button>
                 </form>
-
-                {mode === 'login' && (
-                    <div className={styles.divider}>
-                        <span>or</span>
-                    </div>
-                )}
-
-                {mode === 'login' && (
-                    <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ width: '100%' }}
-                        onClick={() => {
-                            const email = (document.getElementById('email') as HTMLInputElement)?.value;
-                            if (email) {
-                                handleMagicLink(email);
-                            } else {
-                                setError('Please enter your email first');
-                            }
-                        }}
-                    >
-                        Send magic link instead
-                    </button>
-                )}
             </div>
         </main>
     );

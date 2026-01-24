@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Volume2 } from 'lucide-react';
+import AppLayout from '@/components/AppLayout';
 import styles from './lesson.module.css';
 import RecordControl from '@/components/RecordControl';
 import AudioPlayer from '@/components/AudioPlayer';
+import { useTextToSpeech } from '@/lib/hooks/useSpeech';
 
 interface LessonContent {
     dialogue: Array<{ speaker: string; text: string; translation: string }>;
@@ -28,6 +31,7 @@ export default function LessonPage() {
     const [quizIndex, setQuizIndex] = useState(0);
     const [quizAnswer, setQuizAnswer] = useState('');
     const [quizResult, setQuizResult] = useState<'correct' | 'incorrect' | null>(null);
+    const { speak } = useTextToSpeech();
 
     useEffect(() => {
         async function fetchLesson() {
@@ -103,255 +107,267 @@ export default function LessonPage() {
 
     if (loading) {
         return (
-            <main className={styles.main}>
-                <div className={styles.loading}>Loading lesson...</div>
-            </main>
+            <AppLayout>
+                <div className={styles.main}>
+                    <div className={styles.loading}>Loading lesson...</div>
+                </div>
+            </AppLayout>
         );
     }
 
     if (!content) {
         return (
-            <main className={styles.main}>
-                <div className={styles.error}>
-                    <h2>Lesson not found</h2>
-                    <Link href="/learn" className="btn btn-primary">
-                        Back to learning
-                    </Link>
+            <AppLayout>
+                <div className={styles.main}>
+                    <div className={styles.error}>
+                        <h2>Lesson not found</h2>
+                        <Link href="/learn" className="btn btn-primary">
+                            Back to learning
+                        </Link>
+                    </div>
                 </div>
-            </main>
+            </AppLayout>
         );
     }
 
     return (
-        <main className={styles.main}>
-            <div className={styles.container}>
-                {/* Header */}
-                <header className={styles.header}>
-                    <Link href="/learn" className={styles.backLink}>← Back</Link>
-                    <div className={styles.phaseIndicator}>
-                        {['intro', 'pronunciation', 'grammar', 'speak', 'quiz'].map((p, i) => (
-                            <div
-                                key={p}
-                                className={`${styles.phaseDot} ${['intro', 'pronunciation', 'grammar', 'speak', 'quiz'].indexOf(phase) >= i
+        <AppLayout>
+            <div className={styles.main}>
+                <div className={styles.container}>
+                    {/* Header */}
+                    <header className={styles.header}>
+                        <Link href="/learn" className={styles.backLink}>← Back</Link>
+                        <div className={styles.phaseIndicator}>
+                            {['intro', 'pronunciation', 'grammar', 'speak', 'quiz'].map((p, i) => (
+                                <div
+                                    key={p}
+                                    className={`${styles.phaseDot} ${['intro', 'pronunciation', 'grammar', 'speak', 'quiz'].indexOf(phase) >= i
                                         ? styles.active
                                         : ''
-                                    }`}
-                            />
-                        ))}
-                    </div>
-                </header>
-
-                {/* Content Area */}
-                <div className={styles.content}>
-                    {/* Intro Phase */}
-                    {phase === 'intro' && (
-                        <section className={styles.section}>
-                            <h1>Greetings & Introductions</h1>
-                            <span className={styles.levelBadge}>A1</span>
-
-                            <p className={styles.intro}>
-                                Learn how to greet people formally in German and ask how they are.
-                            </p>
-
-                            <div className={styles.dialogue}>
-                                {content.dialogue.map((line, i) => (
-                                    <div key={i} className={styles.dialogueLine}>
-                                        <div className={styles.speaker}>{line.speaker}</div>
-                                        <div className={styles.text}>{line.text}</div>
-                                        <div className={styles.translation}>{line.translation}</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button
-                                className="btn btn-primary btn-lg"
-                                onClick={() => setPhase('pronunciation')}
-                                style={{ width: '100%' }}
-                            >
-                                Continue to pronunciation
-                            </button>
-                        </section>
-                    )}
-
-                    {/* Pronunciation Phase */}
-                    {phase === 'pronunciation' && (
-                        <section className={styles.section}>
-                            <h2>Pronunciation Drill</h2>
-                            <p className="text-muted mb-6">Listen, then practice each word.</p>
-
-                            <div className={styles.drillList}>
-                                {content.pronunciationDrill.map((drill, i) => (
-                                    <div key={i} className={styles.drillItem}>
-                                        <div className={styles.drillWord}>{drill.word}</div>
-                                        <div className={styles.drillPhonetic}>{drill.phonetic}</div>
-                                        <div className={styles.drillTip}>{drill.tip}</div>
-                                        <button className={styles.playBtn}>🔊 Listen</button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button
-                                className="btn btn-primary btn-lg"
-                                onClick={handlePronunciationComplete}
-                                style={{ width: '100%' }}
-                            >
-                                Continue
-                            </button>
-                        </section>
-                    )}
-
-                    {/* Grammar Phase */}
-                    {phase === 'grammar' && (
-                        <section className={styles.section}>
-                            <h2>Grammar Note</h2>
-
-                            <div className={styles.grammarCard}>
-                                <p className={styles.grammarRule}>{content.grammarNote.rule}</p>
-                                <div className={styles.grammarExamples}>
-                                    {content.grammarNote.examples.map((ex, i) => (
-                                        <div key={i} className={styles.grammarExample}>{ex}</div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                className={styles.explainBtn}
-                                onClick={() => setShowGrammar(!showGrammar)}
-                            >
-                                {showGrammar ? 'Hide' : 'Explain'} rule
-                            </button>
-
-                            {showGrammar && (
-                                <div className={styles.grammarDetail}>
-                                    <p>
-                                        In German, "Sie" (formal you) is always capitalized to distinguish it from
-                                        "sie" (she/they). It takes the same verb forms as "sie" (they) - third person plural.
-                                    </p>
-                                </div>
-                            )}
-
-                            <button
-                                className="btn btn-primary btn-lg"
-                                onClick={() => setPhase('speak')}
-                                style={{ width: '100%', marginTop: 'var(--spacing-6)' }}
-                            >
-                                Practice speaking
-                            </button>
-                        </section>
-                    )}
-
-                    {/* Speak Phase */}
-                    {phase === 'speak' && (
-                        <section className={styles.section}>
-                            <h2>Speaking Task</h2>
-                            <p className="text-muted mb-6">
-                                Practice greeting someone formally. Say the phrase below:
-                            </p>
-
-                            <div className={styles.speakPrompt}>
-                                "Guten Tag! Wie geht es Ihnen?"
-                            </div>
-
-                            <div className={styles.recordContainer}>
-                                <RecordControl
-                                    id="lesson-speak"
-                                    onTranscript={handleSpeakComplete}
-                                    ariaLabel="Speak the phrase"
+                                        }`}
                                 />
-                            </div>
+                            ))}
+                        </div>
+                    </header>
 
-                            <button
-                                className={styles.skipLink}
-                                onClick={() => setPhase('quiz')}
-                            >
-                                Skip
-                            </button>
-                        </section>
-                    )}
+                    {/* Content Area */}
+                    <div className={styles.content}>
+                        {/* Intro Phase */}
+                        {phase === 'intro' && (
+                            <section className={styles.section}>
+                                <h1>Greetings & Introductions</h1>
+                                <span className={styles.levelBadge}>A1</span>
 
-                    {/* Quiz Phase */}
-                    {phase === 'quiz' && (
-                        <section className={styles.section}>
-                            <h2>Quick Quiz</h2>
-
-                            {content.quiz[quizIndex] && (
-                                <div className={styles.quizCard}>
-                                    <p className={styles.quizQuestion}>
-                                        {content.quiz[quizIndex].question}
-                                    </p>
-
-                                    {content.quiz[quizIndex].type === 'cloze' ? (
-                                        <input
-                                            type="text"
-                                            className={`input ${quizResult === 'incorrect' ? 'input-error' : ''}`}
-                                            value={quizAnswer}
-                                            onChange={(e) => setQuizAnswer(e.target.value)}
-                                            placeholder="Type your answer"
-                                            disabled={quizResult !== null}
-                                        />
-                                    ) : (
-                                        <div className={styles.mcqOptions}>
-                                            {content.quiz[quizIndex].options?.map((option) => (
-                                                <button
-                                                    key={option}
-                                                    className={`${styles.mcqOption} ${quizAnswer === option ? styles.selected : ''
-                                                        } ${quizResult && option === content.quiz[quizIndex].answer
-                                                            ? styles.correct
-                                                            : ''
-                                                        }`}
-                                                    onClick={() => setQuizAnswer(option)}
-                                                    disabled={quizResult !== null}
-                                                >
-                                                    {option}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {quizResult && (
-                                        <div className={`${styles.quizFeedback} ${styles[quizResult]}`}>
-                                            {quizResult === 'correct' ? '✓ Correct!' : `✗ The answer is: ${content.quiz[quizIndex].answer}`}
-                                        </div>
-                                    )}
-
-                                    {!quizResult && (
-                                        <button
-                                            className="btn btn-primary"
-                                            onClick={handleQuizSubmit}
-                                            disabled={!quizAnswer}
-                                            style={{ width: '100%', marginTop: 'var(--spacing-4)' }}
-                                        >
-                                            Answer
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </section>
-                    )}
-
-                    {/* Complete Phase */}
-                    {phase === 'complete' && (
-                        <section className={styles.section}>
-                            <div className={styles.complete}>
-                                <div className={styles.completeIcon}>🎉</div>
-                                <h2>Lesson Complete!</h2>
-                                <p className="text-muted mb-6">
-                                    Great work! You've practiced greetings and formal speech.
+                                <p className={styles.intro}>
+                                    Learn how to greet people formally in German and ask how they are.
                                 </p>
 
-                                <div className={styles.completeActions}>
-                                    <Link href="/learn" className="btn btn-primary btn-lg">
-                                        Finish session
-                                    </Link>
-                                    <button className="btn btn-secondary">
-                                        Practice top error
-                                    </button>
+                                <div className={styles.dialogue}>
+                                    {content.dialogue.map((line, i) => (
+                                        <div key={i} className={styles.dialogueLine}>
+                                            <div className={styles.speaker}>{line.speaker}</div>
+                                            <div className={styles.text}>{line.text}</div>
+                                            <div className={styles.translation}>{line.translation}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                        </section>
-                    )}
+
+                                <button
+                                    className="btn btn-primary btn-lg"
+                                    onClick={() => setPhase('pronunciation')}
+                                    style={{ width: '100%' }}
+                                >
+                                    Continue to pronunciation
+                                </button>
+                            </section>
+                        )}
+
+                        {/* Pronunciation Phase */}
+                        {phase === 'pronunciation' && (
+                            <section className={styles.section}>
+                                <h2>Pronunciation Drill</h2>
+                                <p className="text-muted mb-6">Listen, then practice each word.</p>
+
+                                <div className={styles.drillList}>
+                                    {content.pronunciationDrill.map((drill, i) => (
+                                        <div key={i} className={styles.drillItem}>
+                                            <div className={styles.drillWord}>{drill.word}</div>
+                                            <div className={styles.drillPhonetic}>{drill.phonetic}</div>
+                                            <div className="text-slate-400 text-sm mb-4">{drill.tip}</div>
+                                            <button
+                                                className="flex items-center gap-2 px-4 py-2 bg-[#0F1729] border border-[#2D3B4F] hover:border-blue-600/50 hover:text-blue-400 rounded-lg text-sm text-slate-300 transition-all font-medium"
+                                                onClick={() => speak(drill.word)}
+                                            >
+                                                <Volume2 className="h-4 w-4" />
+                                                Listen
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <button
+                                    className="btn btn-primary btn-lg"
+                                    onClick={handlePronunciationComplete}
+                                    style={{ width: '100%' }}
+                                >
+                                    Continue
+                                </button>
+                            </section>
+                        )}
+
+                        {/* Grammar Phase */}
+                        {phase === 'grammar' && (
+                            <section className={styles.section}>
+                                <h2>Grammar Note</h2>
+
+                                <div className={styles.grammarCard}>
+                                    <p className={styles.grammarRule}>{content.grammarNote.rule}</p>
+                                    <div className={styles.grammarExamples}>
+                                        {content.grammarNote.examples.map((ex, i) => (
+                                            <div key={i} className={styles.grammarExample}>{ex}</div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    className={styles.explainBtn}
+                                    onClick={() => setShowGrammar(!showGrammar)}
+                                >
+                                    {showGrammar ? 'Hide' : 'Explain'} rule
+                                </button>
+
+                                {showGrammar && (
+                                    <div className={styles.grammarDetail}>
+                                        <p>
+                                            In German, "Sie" (formal you) is always capitalized to distinguish it from
+                                            "sie" (she/they). It takes the same verb forms as "sie" (they) - third person plural.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <button
+                                    className="btn btn-primary btn-lg"
+                                    onClick={() => setPhase('speak')}
+                                    style={{ width: '100%', marginTop: 'var(--spacing-6)' }}
+                                >
+                                    Practice speaking
+                                </button>
+                            </section>
+                        )}
+
+                        {/* Speak Phase */}
+                        {phase === 'speak' && (
+                            <section className={styles.section}>
+                                <h2>Speaking Task</h2>
+                                <p className="text-muted mb-6">
+                                    Practice greeting someone formally. Say the phrase below:
+                                </p>
+
+                                <div className={styles.speakPrompt}>
+                                    "Guten Tag! Wie geht es Ihnen?"
+                                </div>
+
+                                <div className={styles.recordContainer}>
+                                    <RecordControl
+                                        id="lesson-speak"
+                                        onTranscript={handleSpeakComplete}
+                                        ariaLabel="Speak the phrase"
+                                    />
+                                </div>
+
+                                <button
+                                    className={styles.skipLink}
+                                    onClick={() => setPhase('quiz')}
+                                >
+                                    Skip
+                                </button>
+                            </section>
+                        )}
+
+                        {/* Quiz Phase */}
+                        {phase === 'quiz' && (
+                            <section className={styles.section}>
+                                <h2>Quick Quiz</h2>
+
+                                {content.quiz[quizIndex] && (
+                                    <div className={styles.quizCard}>
+                                        <p className={styles.quizQuestion}>
+                                            {content.quiz[quizIndex].question}
+                                        </p>
+
+                                        {content.quiz[quizIndex].type === 'cloze' ? (
+                                            <input
+                                                type="text"
+                                                className={`input ${quizResult === 'incorrect' ? 'input-error' : ''}`}
+                                                value={quizAnswer}
+                                                onChange={(e) => setQuizAnswer(e.target.value)}
+                                                placeholder="Type your answer"
+                                                disabled={quizResult !== null}
+                                            />
+                                        ) : (
+                                            <div className={styles.mcqOptions}>
+                                                {content.quiz[quizIndex].options?.map((option) => (
+                                                    <button
+                                                        key={option}
+                                                        className={`${styles.mcqOption} ${quizAnswer === option ? styles.selected : ''
+                                                            } ${quizResult && option === content.quiz[quizIndex].answer
+                                                                ? styles.correct
+                                                                : ''
+                                                            }`}
+                                                        onClick={() => setQuizAnswer(option)}
+                                                        disabled={quizResult !== null}
+                                                    >
+                                                        {option}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {quizResult && (
+                                            <div className={`${styles.quizFeedback} ${styles[quizResult]}`}>
+                                                {quizResult === 'correct' ? '✓ Correct!' : `✗ The answer is: ${content.quiz[quizIndex].answer}`}
+                                            </div>
+                                        )}
+
+                                        {!quizResult && (
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={handleQuizSubmit}
+                                                disabled={!quizAnswer}
+                                                style={{ width: '100%', marginTop: 'var(--spacing-4)' }}
+                                            >
+                                                Answer
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {/* Complete Phase */}
+                        {phase === 'complete' && (
+                            <section className={styles.section}>
+                                <div className={styles.complete}>
+                                    <div className={styles.completeIcon}>🎉</div>
+                                    <h2>Lesson Complete!</h2>
+                                    <p className="text-muted mb-6">
+                                        Great work! You've practiced greetings and formal speech.
+                                    </p>
+
+                                    <div className={styles.completeActions}>
+                                        <Link href="/learn" className="btn btn-primary btn-lg">
+                                            Finish session
+                                        </Link>
+                                        <button className="btn btn-secondary">
+                                            Practice top error
+                                        </button>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+                    </div>
                 </div>
             </div>
-        </main>
+        </AppLayout>
     );
 }

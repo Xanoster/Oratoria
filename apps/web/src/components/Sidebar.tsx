@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Sparkles, Play, RefreshCw, Mic, Users, TrendingUp, Settings, User } from 'lucide-react';
 import { useAuth, getAvatarUrl } from '@/lib/auth';
 
@@ -16,12 +17,20 @@ const navItems = [
 export default function Sidebar() {
     const pathname = usePathname();
     const { user } = useAuth();
+    const [mounted, setMounted] = useState(false);
 
-    const avatarUrl = user ? getAvatarUrl(user.email || user.id) : null;
-    const userName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Only show user-specific data after mounting to prevent hydration mismatch
+    const avatarUrl = mounted && user ? getAvatarUrl(user.email || user.id) : null;
+    const userName = mounted && user
+        ? (user?.user_metadata?.name || user?.email?.split('@')[0] || 'User')
+        : 'User';
 
     return (
-        <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0A0E1A] border-r border-[#1E293B] flex flex-col z-40">
+        <aside className="sticky top-0 h-screen w-64 bg-[#0A0E1A] border-r border-[#1E293B] flex flex-col z-40 flex-none">
             {/* Logo */}
             <Link href="/learn" className="flex items-center gap-3 px-6 py-5 border-b border-[#1E293B]">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
