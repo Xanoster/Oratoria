@@ -24,6 +24,7 @@ interface PlacementAnalysis {
 
 interface RoleplayResponse {
     text: string;
+    translation?: string;
     corrections: Array<{ error: string; correction: string; explanation: string }>;
     levelViolations?: Violation[];
     wasRewritten?: boolean;
@@ -217,6 +218,7 @@ Respond naturally in German. Also identify any errors in the user's message.
 Return JSON:
 {
   "text": "Your German response",
+  "translation": "English translation of your response",
   "corrections": [
     {"error": "what they said wrong", "correction": "correct form", "explanation": "brief explanation"}
   ]

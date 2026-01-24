@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 export enum EvaluationMode {
     PLACEMENT = 'placement',
     LESSON = 'lesson',
+    ROLEPLAY = 'roleplay',
 }
 
 export enum EvaluationStatus {

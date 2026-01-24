@@ -9,6 +9,7 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
 import { LevelGuardModule } from './level-guard/level-guard.module';
 import { AdaptiveLearningModule } from './adaptive-learning/adaptive-learning.module';
+import { RoleplayModule } from './roleplay/roleplay.module';
 import { SrsModule } from './srs/srs.module';
 import { RagModule } from './rag/rag.module';
 import { AiAdapterModule } from './ai-adapter/ai-adapter.module';
@@ -37,6 +38,7 @@ import { HealthModule } from './health/health.module';
         EvaluationModule,
         LevelGuardModule,
         AdaptiveLearningModule,
+        RoleplayModule,
         SrsModule,
         RagModule,
         AiAdapterModule,

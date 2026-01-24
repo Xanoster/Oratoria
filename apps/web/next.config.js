@@ -7,7 +7,14 @@ const nextConfig = {
             allowedOrigins: ['localhost:3000'],
         },
     },
-    // Removed rewrites since we are moving API to Next.js Route Handlers
+    async rewrites() {
+        return [
+            {
+                source: '/api/v1/:path*',
+                destination: 'http://localhost:3001/api/v1/:path*',
+            },
+        ];
+    },
 };
 
 module.exports = nextConfig;
