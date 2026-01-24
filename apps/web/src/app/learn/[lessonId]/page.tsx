@@ -7,7 +7,7 @@ import { Volume2, ChevronDown } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import styles from './lesson.module.css';
 import RecordControl from '@/components/RecordControl';
-import PronunciationFeedbackModal from '@/components/PronunciationFeedbackModal';
+import PronunciationFeedbackModal, { PhonemeError } from '@/components/PronunciationFeedbackModal';
 import { useTextToSpeech } from '@/lib/hooks/useSpeech';
 
 interface LessonContent {
@@ -56,6 +56,7 @@ export default function LessonPage() {
     const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [retryCount, setRetryCount] = useState(0);
     const [userErrors, setUserErrors] = useState<string[]>([]);
+    const [phonemeErrors, setPhonemeErrors] = useState<PhonemeError[]>([]);
 
     useEffect(() => {
         async function fetchLesson() {
@@ -145,6 +146,25 @@ export default function LessonPage() {
                     .filter((e: any) => e.type === 'pronunciation')
                     .map((e: any) => e.token);
                 setUserErrors(prev => [...new Set([...prev, ...newErrors])]);
+
+                // Extract phoneme errors with tips from drill content
+                const extractedPhonemeErrors: PhonemeError[] = evalResult.detectedErrors
+                    .filter((e: any) => e.type === 'pronunciation')
+                    .slice(0, 3) // Focus on 2-3 max
+                    .map((e: any) => {
+                        // Try to find matching drill for phonetic info
+                        const drill = content?.pronunciationDrill.find(
+                            d => d.word.toLowerCase() === e.token.toLowerCase()
+                        );
+                        return {
+                            word: e.token,
+                            phoneme: drill?.phonetic || '',
+                            expected: e.expected || e.token,
+                            actual: e.token,
+                            tip: drill?.tip || e.explanation || 'Practice this word.',
+                        };
+                    });
+                setPhonemeErrors(extractedPhonemeErrors);
 
                 // Show feedback modal
                 setShowFeedbackModal(true);
@@ -485,12 +505,13 @@ export default function LessonPage() {
                 <PronunciationFeedbackModal
                     isOpen={showFeedbackModal}
                     onClose={() => setShowFeedbackModal(false)}
-                    evaluation={evaluation}
+                    evaluationResult={evaluation}
+                    phonemeErrors={phonemeErrors}
                     expectedText={currentPrompt.replace(/^Practice saying: "(.+)"$/, '$1').replace(/"/g, '')}
                     userTranscript={userTranscript}
                     onRetry={handleRetry}
                     onContinue={handleContinueAfterSpeaking}
-                    onPracticeError={handlePracticeError}
+                    onSpeak={speak}
                 />
             )}
         </AppLayout>
