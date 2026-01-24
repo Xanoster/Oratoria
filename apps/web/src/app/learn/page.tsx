@@ -2,128 +2,185 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ChevronDown, Clock, ArrowRight } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 
-interface NextSession {
-    lessonId: string;
-    title: string;
+interface SessionPlan {
+    primaryFocus: 'pronunciation' | 'grammar' | 'vocabulary' | 'speaking' | 'repair' | 'review';
+    lessonId?: string;
+    generatedLessonSpec?: {
+        type: string;
+        focus: string;
+        difficulty: string;
+    };
     estimatedTime: number;
-    focus: string;
+    explanationText: string;
+}
+
+type SessionLabel = 'Repair Session' | 'Progress Session';
+
+function getSessionLabel(focus: SessionPlan['primaryFocus']): SessionLabel {
+    // Repair session if user is struggling
+    if (focus === 'repair' || focus === 'grammar' || focus === 'pronunciation') {
+        return 'Repair Session';
+    }
+    // Progress session if progressing
+    return 'Progress Session';
+}
+
+function getFocusLabel(focus: SessionPlan['primaryFocus']): string {
+    switch (focus) {
+        case 'repair': return 'Targeted Practice';
+        case 'pronunciation': return 'Pronunciation';
+        case 'grammar': return 'Grammar';
+        case 'vocabulary': return 'Vocabulary';
+        case 'speaking': return 'Speaking';
+        case 'review': return 'Review';
+        default: return 'Practice';
+    }
 }
 
 export default function LearnPage() {
-    const [nextSession, setNextSession] = useState<NextSession | null>(null);
+    const [sessionPlan, setSessionPlan] = useState<SessionPlan | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showExplanation, setShowExplanation] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        async function fetchData() {
+        async function fetchSessionPlan() {
             try {
-                const lessonRes = await fetch('/api/v1/lessons/next', {
-                    credentials: 'include',
-                });
+                // Get user ID from session/auth (simplified for now)
+                const userId = 'current-user';
+                const timeAvailable = 15; // Default 15 minutes
 
-                if (lessonRes.ok) {
-                    const lesson = await lessonRes.json();
-                    if (lesson) {
-                        setNextSession({
-                            lessonId: lesson.id,
-                            title: lesson.title,
-                            estimatedTime: 30,
-                            focus: 'Speaking + Grammar practice',
-                        });
-                    }
+                const res = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/v1/adaptive-learning/next-session/${userId}?time=${timeAvailable}`,
+                    { credentials: 'include' }
+                );
+
+                if (res.ok) {
+                    const plan = await res.json();
+                    setSessionPlan(plan);
+                } else {
+                    // Fallback plan if API not available
+                    setSessionPlan({
+                        primaryFocus: 'vocabulary',
+                        estimatedTime: 15,
+                        explanationText: 'Continuing with your current learning path.',
+                    });
                 }
-            } catch (error) {
-                console.error('Failed to fetch data:', error);
+            } catch (err) {
+                console.error('Failed to fetch session plan:', err);
+                // Fallback plan
+                setSessionPlan({
+                    primaryFocus: 'vocabulary',
+                    estimatedTime: 15,
+                    explanationText: 'Continuing with your current learning path.',
+                });
             } finally {
                 setLoading(false);
             }
         }
 
-        fetchData();
+        fetchSessionPlan();
     }, []);
 
     if (loading) {
         return (
             <AppLayout>
                 <div className="min-h-screen flex items-center justify-center">
-                    <p className="text-slate-400">Loading...</p>
+                    <div className="w-6 h-6 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
                 </div>
             </AppLayout>
         );
     }
 
-    // Demo session if none loaded
-    const session = nextSession || {
-        lessonId: 'demo-1',
-        title: 'At the Bakery',
-        estimatedTime: 30,
-        focus: 'Speaking + Accusative case',
-    };
+    if (!sessionPlan) {
+        return (
+            <AppLayout>
+                <div className="min-h-screen flex items-center justify-center">
+                    <p className="text-slate-400">Unable to load session.</p>
+                </div>
+            </AppLayout>
+        );
+    }
+
+    const sessionLabel = getSessionLabel(sessionPlan.primaryFocus);
+    const isRepair = sessionLabel === 'Repair Session';
+    const lessonPath = sessionPlan.lessonId
+        ? `/learn/${sessionPlan.lessonId}`
+        : '/learn/generated';
 
     return (
         <AppLayout>
             <div className="min-h-screen p-8">
-                <div className="max-w-2xl mx-auto">
-                    {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-white mb-2">Good evening! 👋</h1>
-                        <p className="text-slate-400">Ready for your next session?</p>
-                    </div>
-
-                    {/* Next Session Card - Dominant */}
-                    <div className="bg-[#0F1729] border border-[#1E293B] rounded-2xl p-8 mb-8">
+                <div className="max-w-lg mx-auto">
+                    {/* Session Card - Single Primary Action */}
+                    <div className={`
+                        rounded-2xl p-8 mb-6
+                        ${isRepair
+                            ? 'bg-amber-950/30 border border-amber-800/40'
+                            : 'bg-[#0F1729] border border-[#1E293B]'
+                        }
+                    `}>
+                        {/* Session Label */}
                         <div className="mb-6">
-                            <h2 className="text-xl font-semibold text-white mb-2">
-                                Your next 30-minute session
-                            </h2>
-                            <span className="inline-block px-3 py-1 text-sm rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
-                                {session.focus}
+                            <span className={`
+                                inline-block px-3 py-1 text-xs font-medium rounded-full mb-3
+                                ${isRepair
+                                    ? 'bg-amber-600/20 text-amber-400 border border-amber-600/30'
+                                    : 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
+                                }
+                            `}>
+                                {sessionLabel}
                             </span>
+
+                            <h1 className="text-xl font-semibold text-white">
+                                {getFocusLabel(sessionPlan.primaryFocus)}
+                            </h1>
                         </div>
 
-                        <div className="space-y-3 mb-8">
-                            <div className="flex items-center gap-3 text-slate-300">
-                                <span className="text-2xl">🗣️</span>
-                                <span>Speaking practice (10 min)</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-slate-300">
-                                <span className="text-2xl">📖</span>
-                                <span>Grammar focus (10 min)</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-slate-300">
-                                <span className="text-2xl">🧠</span>
-                                <span>SRS review (10 min)</span>
-                            </div>
+                        {/* Time Estimate */}
+                        <div className="flex items-center gap-2 text-slate-400 text-sm mb-8">
+                            <Clock size={16} />
+                            <span>{sessionPlan.estimatedTime} minutes</span>
                         </div>
 
+                        {/* Primary Action Button */}
                         <Link
-                            href={`/learn/${session.lessonId}`}
-                            className="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-4 rounded-lg font-medium transition-colors"
+                            href={lessonPath}
+                            className={`
+                                flex items-center justify-center gap-2 w-full py-4 rounded-lg font-medium transition-colors
+                                ${isRepair
+                                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                }
+                            `}
                         >
-                            Start session
+                            <span>Start</span>
+                            <ArrowRight size={18} />
                         </Link>
                     </div>
 
-                    {/* Why this lesson - Collapsed */}
-                    <details className="bg-[#0F1729] border border-[#1E293B] rounded-xl mb-8">
-                        <summary className="px-6 py-4 text-slate-400 cursor-pointer hover:text-white transition-colors">
-                            Why this lesson?
-                        </summary>
-                        <div className="px-6 pb-4 text-slate-500 text-sm">
-                            Based on your performance in past sessions, we've identified the accusative case and bakery vocabulary as areas for improvement. This lesson reinforces those patterns.
+                    {/* Why This Session - Collapsible */}
+                    <button
+                        onClick={() => setShowExplanation(!showExplanation)}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-[#0F1729] border border-[#1E293B] text-slate-400 hover:text-slate-300 transition-colors"
+                    >
+                        <span className="text-sm">Why this session?</span>
+                        <ChevronDown
+                            size={16}
+                            className={`transition-transform ${showExplanation ? 'rotate-180' : ''}`}
+                        />
+                    </button>
+
+                    {showExplanation && (
+                        <div className="mt-2 px-4 py-3 rounded-lg bg-[#0A0F1C] border border-[#1E293B]">
+                            <p className="text-sm text-slate-500">
+                                {sessionPlan.explanationText}
+                            </p>
                         </div>
-                    </details>
-
-                    {/* Secondary Links */}
-                    <div className="text-center space-x-6">
-                        <Link href="/review" className="text-slate-400 hover:text-blue-400 transition-colors">
-                            Go to review →
-                        </Link>
-                        <Link href="/speak" className="text-slate-400 hover:text-blue-400 transition-colors">
-                            Speak now →
-                        </Link>
-                    </div>
+                    )}
                 </div>
             </div>
         </AppLayout>
