@@ -46,7 +46,7 @@ export default function ReviewPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [completed, setCompleted] = useState(false);
-    [isOnline, setIsOnline] = useState(true);
+    const [isOnline, setIsOnline] = useState(true);
     const [userAnswer, setUserAnswer] = useState('');
     const [showAnswer, setShowAnswer] = useState(false);
     const [evaluationScore, setEvaluationScore] = useState<number | null>(null);
@@ -182,8 +182,8 @@ export default function ReviewPage() {
     async function evaluateAnswer(answer: string) {
         const item = items[currentIndex];
 
-        // If pronunciation item, always trigger evaluation
-        if (item.requiresSpoken || item.type === 'pronunciation') {
+        // Always try AI evaluation if online
+        if (isOnline) {
             try {
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/evaluation`, {
                     method: 'POST',
@@ -199,27 +199,32 @@ export default function ReviewPage() {
 
                 if (res.ok) {
                     const evaluation = await res.json();
-                    setEvaluationScore(evaluation.pronunciationScore);
 
-                    // Extract phoneme errors
+                    // For text answers, prioritize grammar score if available, else overall
+                    const score = item.requiresSpoken ? evaluation.pronunciationScore : evaluation.grammarScore || evaluation.overallScore;
+                    setEvaluationScore(score);
+
+                    // Extract errors (pronunciation OR grammar)
                     const errors = (evaluation.detectedErrors || [])
-                        .filter((e: any) => e.type === 'pronunciation')
                         .map((e: any) => ({
-                            word: e.word,
+                            word: e.token || e.word, // Handle both formats
                             expected: e.expected,
                             phoneme: e.phoneme,
                             tip: e.explanation,
+                            type: e.type
                         }));
 
-                    setPronunciationErrors(errors);
+                    // Only show modal for spoken/pronunciation errors
+                    const spokenErrors = errors.filter((e: any) => e.type === 'pronunciation');
+                    setPronunciationErrors(spokenErrors);
 
-                    if (errors.length > 0 && evaluation.pronunciationScore < 70) {
+                    if (spokenErrors.length > 0 && evaluation.pronunciationScore < 70 && (item.requiresSpoken || item.type === 'pronunciation')) {
                         setShowPronunciationModal(true);
                     }
 
                     setShowAnswer(true);
                 } else {
-                    // Fallback: simple comparison
+                    // Fallback to local check on API failure
                     const score = compareAnswers(answer, item.content.answer);
                     setEvaluationScore(score);
                     setShowAnswer(true);
@@ -231,7 +236,7 @@ export default function ReviewPage() {
                 setShowAnswer(true);
             }
         } else {
-            // Text-based items: simple comparison
+            // Offline fallback: simple comparison
             const score = compareAnswers(answer, item.content.answer);
             setEvaluationScore(score);
             setShowAnswer(true);
@@ -432,8 +437,8 @@ export default function ReviewPage() {
                                         onClick={() => isListening ? stopRecording() : startRecording()}
                                         disabled={loading}
                                         className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${isListening
-                                                ? 'bg-red-600 text-white shadow-lg shadow-red-600/50 scale-110'
-                                                : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
+                                            ? 'bg-red-600 text-white shadow-lg shadow-red-600/50 scale-110'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
                                             }`}
                                     >
                                         {isListening ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
@@ -496,8 +501,8 @@ export default function ReviewPage() {
                                 {/* Score */}
                                 {evaluationScore !== null && (
                                     <div className={`text-center p-4 rounded-lg ${evaluationScore >= 80 ? 'bg-green-900/20 border border-green-600/30' :
-                                            evaluationScore >= 60 ? 'bg-amber-900/20 border border-amber-600/30' :
-                                                'bg-red-900/20 border border-red-600/30'
+                                        evaluationScore >= 60 ? 'bg-amber-900/20 border border-amber-600/30' :
+                                            'bg-red-900/20 border border-red-600/30'
                                         }`}>
                                         <div className="text-3xl font-bold mb-1">
                                             {evaluationScore >= 80 ? '😊' : evaluationScore >= 60 ? '😐' : '😓'}

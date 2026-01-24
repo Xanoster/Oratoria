@@ -10,12 +10,36 @@ const DEV_MODE = false;
 function AuthPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const redirectTo = searchParams.get('redirect') || '/learn';
+    const rawRedirect = searchParams.get('redirect') || '/learn';
+    // Prevent redirect loops
+    const redirectTo = rawRedirect.startsWith('/auth') ? '/learn' : rawRedirect;
     const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
 
     const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
     const [isLoading, setIsLoading] = useState(false);
+    const [checkingSession, setCheckingSession] = useState(true);
     const [error, setError] = useState('');
+
+    // Check session on mount
+    useEffect(() => {
+        let mounted = true;
+        async function checkSession() {
+            try {
+                // Short timeout to minimize perceived delay if API is fast,
+                // but ensure we don't flash form if we're mostly likely logged in
+                const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
+                if (mounted && res.ok) {
+                    router.replace(redirectTo);
+                } else {
+                    if (mounted) setCheckingSession(false);
+                }
+            } catch (e) {
+                if (mounted) setCheckingSession(false);
+            }
+        }
+        checkSession();
+        return () => { mounted = false; };
+    }, [router, redirectTo]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -45,13 +69,24 @@ function AuthPageContent() {
                 throw new Error(data.message || 'Authentication failed');
             }
 
-            // Success - redirect
-            router.push(redirectTo);
-            router.refresh(); // Refresh to update AuthProvider state
+            // Hard redirect to ensure proper state refresh for all layouts
+            window.location.href = redirectTo;
         } catch (err: any) {
             setError(err.message || 'Something went wrong');
             setIsLoading(false);
         }
+    }
+
+    if (checkingSession) {
+        return (
+            <main className={styles.main}>
+                <div className={styles.card}>
+                    <div className="flex justify-center py-12">
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                </div>
+            </main>
+        );
     }
 
     return (

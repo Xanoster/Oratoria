@@ -31,19 +31,15 @@ export default function SettingsPage() {
                     credentials: 'include',
                 });
 
+                if (res.status === 401) {
+                    router.push('/auth');
+                    return;
+                }
+
                 if (res.ok) {
                     setSettings(await res.json());
                 } else {
-                    // Demo data
-                    setSettings({
-                        name: 'User',
-                        email: 'user@example.com',
-                        prefs: {
-                            correctionDepth: 'standard',
-                            correctionTiming: 'immediate',
-                            timeCommitment: 15,
-                        },
-                    });
+                    throw new Error('Failed to load profile');
                 }
             } catch (error) {
                 console.error('Failed to fetch settings:', error);
@@ -127,34 +123,6 @@ export default function SettingsPage() {
                         <h1>Settings</h1>
                     </header>
 
-                    {/* Profile Section */}
-                    <section className={styles.section}>
-                        <h2>Profile</h2>
-
-                        <div className={styles.field}>
-                            <label htmlFor="name" className="label">Name</label>
-                            <input
-                                id="name"
-                                type="text"
-                                className="input"
-                                value={settings?.name || ''}
-                                onChange={(e) => setSettings(s => s ? { ...s, name: e.target.value } : null)}
-                            />
-                        </div>
-
-                        <div className={styles.field}>
-                            <label htmlFor="email" className="label">Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                className="input"
-                                value={settings?.email || ''}
-                                disabled
-                            />
-                            <p className={styles.fieldNote}>Email cannot be changed</p>
-                        </div>
-                    </section>
-
                     {/* Preferences Section */}
                     <section className={styles.section}>
                         <h2>Learning Preferences</h2>
@@ -215,22 +183,6 @@ export default function SettingsPage() {
                         </div>
                     </section>
 
-                    {/* Danger Zone */}
-                    <section className={styles.dangerSection}>
-                        <h2>Privacy & Data</h2>
-
-                        <button
-                            className={styles.dangerBtn}
-                            onClick={() => setShowDeleteConfirm(true)}
-                        >
-                            Delete all voice data
-                        </button>
-
-                        <p className={styles.dangerNote}>
-                            This will permanently delete all your voice recordings and related analysis.
-                        </p>
-                    </section>
-
                     {/* Actions */}
                     <div className={styles.actions}>
                         <button
@@ -240,51 +192,7 @@ export default function SettingsPage() {
                         >
                             {saving ? 'Saving...' : 'Save changes'}
                         </button>
-
-                        <button className="btn btn-secondary" onClick={handleLogout}>
-                            Log out
-                        </button>
                     </div>
-
-                    {/* Delete Confirmation Modal */}
-                    {showDeleteConfirm && (
-                        <div className={styles.modalOverlay}>
-                            <div className={styles.modal}>
-                                <h2>Delete all voice data</h2>
-                                <p>
-                                    This action cannot be undone. To confirm, type{' '}
-                                    <code>DELETE MY VOICE DATA</code> below:
-                                </p>
-
-                                <input
-                                    type="text"
-                                    className="input"
-                                    value={deleteConfirmText}
-                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                                    placeholder="Type confirmation here"
-                                />
-
-                                <div className={styles.modalActions}>
-                                    <button
-                                        className="btn btn-secondary"
-                                        onClick={() => {
-                                            setShowDeleteConfirm(false);
-                                            setDeleteConfirmText('');
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="btn btn-danger"
-                                        onClick={handleDeleteVoiceData}
-                                        disabled={deleteConfirmText !== 'DELETE MY VOICE DATA'}
-                                    >
-                                        Permanently delete
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </main>
         </AppLayout>

@@ -28,7 +28,7 @@ export class AuthController {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return { userId: result.userId, email: result.email };
+        return result;
     }
 
     @Post('login')
@@ -51,7 +51,7 @@ export class AuthController {
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
-        return { userId: result.userId, email: result.email };
+        return result;
     }
 
     @Post('magic-link')
@@ -78,7 +78,7 @@ export class AuthController {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return { userId: result.userId, email: result.email };
+        return result;
     }
 
     @Post('refresh')

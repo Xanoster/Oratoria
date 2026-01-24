@@ -247,25 +247,25 @@ export class RoleplayService {
             throw new Error('No turns in session yet');
         }
 
-        // Check if hint already used this turn
-        if (lastTurn.hintRequested) {
-            return {
-                hint: lastTurn.hintGiven || 'No hint available',
-                hintsRemaining: 0,
-                alreadyUsedThisTurn: true,
-            };
-        }
+
 
         const scenario = SCENARIOS[session.scenarioId as keyof typeof SCENARIOS];
         if (!scenario) {
             throw new Error(`Unknown scenario: ${session.scenarioId}`);
         }
 
-        // Generate hint based on context
+        // Build conversation history
+        const history = session.turns.map(t =>
+            t.userMessage
+                ? `User: ${t.userMessage}\nAI: ${t.aiResponse}`
+                : `AI: ${t.aiResponse}`
+        );
+
+        // Generate hint based on context and history
         const hint = await this.generateHint(
             scenario,
             session.userLevel,
-            lastTurn.aiResponse,
+            history,
         );
 
         // Update turn to mark hint as used
@@ -444,39 +444,13 @@ export class RoleplayService {
     private async generateHint(
         scenario: (typeof SCENARIOS)[keyof typeof SCENARIOS],
         userLevel: string,
-        aiMessage: string,
+        history: string[],
     ): Promise<string> {
-        // Generate a simple, level-appropriate hint
-        const hints: Record<string, string[]> = {
-            A0: [
-                'Try: "Ja" or "Nein"',
-                'Say: "Ich..." (I...)',
-                'Numbers: eins, zwei, drei...',
-            ],
-            A1: [
-                'Start with: "Ich möchte..." (I would like...)',
-                'Use: "Bitte" or "Danke"',
-                'Ask: "Wo ist...?" (Where is...?)',
-            ],
-            A2: [
-                'Try: "Können Sie mir helfen?" (Can you help me?)',
-                'Respond: "Das klingt gut" (That sounds good)',
-                'Ask: "Wie viel kostet...?" (How much does... cost?)',
-            ],
-            B1: [
-                'Express opinion: "Ich denke, dass..."',
-                'Ask for clarification: "Könnten Sie das erklären?"',
-                'Suggest: "Vielleicht könnten wir..."',
-            ],
-            B2: [
-                'Use subjunctive: "Ich hätte gedacht..."',
-                'Express nuance: "Es könnte sein, dass..."',
-                'Discuss alternatives: "Andererseits..."',
-            ],
-        };
-
-        const levelHints = hints[userLevel] || hints['A1'];
-        return levelHints[Math.floor(Math.random() * levelHints.length)];
+        return this.llmService.generateRoleplayHint(
+            scenario.context,
+            userLevel,
+            history
+        );
     }
 
     private updateErrorTracker(

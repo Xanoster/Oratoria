@@ -260,6 +260,36 @@ Return JSON:
         };
     }
 
+    async generateRoleplayHint(
+        context: string,
+        userLevel: string,
+        conversationHistory: string[],
+    ): Promise<string> {
+        const prompt = `You are a German language tutor helping a student in a roleplay.
+Context: ${context}
+User Level: ${userLevel} (Keep it simple!)
+
+Conversation history:
+${conversationHistory.join('\n')}
+
+The user is stuck. Provide 2 concrete German response options they could use right now.
+Format exactly like this:
+💡 Option 1: "[German phrase]" (Meaning)
+💡 Option 2: "[German phrase]" (Meaning)
+
+Return ONLY the options.`;
+
+        try {
+            const result = await this.model.generateContent(prompt);
+            let hint = result.response.text().trim();
+            return hint;
+        } catch (error) {
+            this.logger.error('LLM hint generation failed:', error);
+            // Fallback
+            return '💡 Try saying: "Ich weiß nicht" (I don\'t know) or asking "Können Sie das wiederholen?" (Can you repeat that?)';
+        }
+    }
+
     async analyzeGrammar(text: string): Promise<Array<{ ruleId: string; explanation: string; suggestion: string }>> {
         const prompt = `Analyze this German text for grammar errors:
 "${text}"

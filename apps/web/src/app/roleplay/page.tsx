@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
-import { Mic, MicOff, Volume2, ArrowLeft, Lightbulb, Pause, Play, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, MicOff, Volume2, ArrowLeft, Lightbulb, Pause, Play, ChevronDown, ChevronUp, Languages } from 'lucide-react';
 import { useRecordControl } from '@/lib/hooks/useRecordControl';
 import { useTextToSpeech } from '@/lib/hooks/useSpeech';
 
@@ -153,6 +153,8 @@ export default function RoleplayPage() {
     const [coachingData, setCoachingData] = useState<CoachingData | null>(null);
     const [expandedCorrections, setExpandedCorrections] = useState<Set<string>>(new Set());
 
+    const [visibleTranslations, setVisibleTranslations] = useState<Set<string>>(new Set());
+
     const {
         state: recordState,
         transcript,
@@ -296,11 +298,19 @@ export default function RoleplayPage() {
             const data = await res.json();
 
             if (data.alreadyUsedThisTurn) {
-                alert('You already used your hint for this turn!');
+                // Should not happen with new backend logic, but handled just in case
             } else {
-                alert(`💡 Hint: ${data.hint}`);
-                // Update session to reflect hint used
-                setSession(prev => prev ? { ...prev, hintsUsed: prev.hintsUsed + 1 } : null);
+                setSession(prev => {
+                    if (!prev) return null;
+                    const newTurns = [...prev.turns];
+                    // Use the last turn logic since hints are for current state
+                    // Note: Backend might define 'last turn' as the one waiting for user input
+                    if (newTurns.length > 0) {
+                        const lastTurnIndex = newTurns.length - 1;
+                        newTurns[lastTurnIndex] = { ...newTurns[lastTurnIndex], hintGiven: data.hint };
+                    }
+                    return { ...prev, turns: newTurns, hintsUsed: prev.hintsUsed + 1 };
+                });
             }
         } catch (error) {
             console.error('Get hint error:', error);
@@ -344,6 +354,18 @@ export default function RoleplayPage() {
 
     function toggleCorrections(turnId: string) {
         setExpandedCorrections(prev => {
+            const next = new Set(prev);
+            if (next.has(turnId)) {
+                next.delete(turnId);
+            } else {
+                next.add(turnId);
+            }
+            return next;
+        });
+    }
+
+    function toggleTranslation(turnId: string) {
+        setVisibleTranslations(prev => {
             const next = new Set(prev);
             if (next.has(turnId)) {
                 next.delete(turnId);
@@ -455,14 +477,8 @@ export default function RoleplayPage() {
                                     Pause & Coach
                                 </button>
                             )}
-                            <button
-                                onClick={getHint}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-all border border-blue-600/30"
-                                disabled={isLoading}
-                            >
-                                <Lightbulb className="h-4 w-4" />
-                                Hint ({session.turns.length > 0 && session.turns[session.turns.length - 1]?.hintRequested ? '0' : '1'} left)
-                            </button>
+
+
                         </div>
                     </div>
                 </div>
@@ -485,17 +501,45 @@ export default function RoleplayPage() {
                                 <div className="max-w-[80%] space-y-2">
                                     <div className="rounded-2xl px-4 py-3 bg-[#1E293B] text-white">
                                         <p className="text-base">{turn.aiResponse}</p>
-                                        {turn.aiTranslation && (
-                                            <p className="text-sm text-slate-300 mt-1 opacity-70 italic">{turn.aiTranslation}</p>
+                                        {visibleTranslations.has(turn.id) && turn.aiTranslation && (
+                                            <p className="text-sm text-slate-300 mt-1 opacity-70 italic border-t border-slate-700/50 pt-1">{turn.aiTranslation}</p>
                                         )}
-                                        <button
-                                            onClick={() => speak(turn.aiResponse)}
-                                            className="mt-2 text-slate-400 hover:text-white flex items-center gap-1 text-xs"
-                                            disabled={isSpeaking}
-                                        >
-                                            <Volume2 className="h-4 w-4" />
-                                            Replay
-                                        </button>
+                                        <div className="flex items-center gap-3 mt-2">
+                                            <button
+                                                onClick={() => speak(turn.aiResponse)}
+                                                className="text-slate-400 hover:text-white flex items-center gap-1 text-xs transition-colors"
+                                                disabled={isSpeaking}
+                                            >
+                                                <Volume2 className="h-3 w-3" />
+                                                Replay
+                                            </button>
+                                            {turn.aiTranslation && (
+                                                <button
+                                                    onClick={() => toggleTranslation(turn.id)}
+                                                    className={`hover:text-white flex items-center gap-1 text-xs transition-colors ${visibleTranslations.has(turn.id) ? 'text-purple-400' : 'text-slate-400'
+                                                        }`}
+                                                >
+                                                    <Languages className="h-3 w-3" />
+                                                    {visibleTranslations.has(turn.id) ? 'Hide' : 'Translate'}
+                                                </button>
+                                            )}
+                                            {i === session.turns.length - 1 && (
+                                                <button
+                                                    onClick={getHint}
+                                                    className="text-slate-400 hover:text-amber-400 flex items-center gap-1 text-xs transition-colors"
+                                                    title="Get a hint"
+                                                    disabled={isLoading}
+                                                >
+                                                    <Lightbulb className="h-3 w-3" />
+                                                    Hint
+                                                </button>
+                                            )}
+                                        </div>
+                                        {turn.hintGiven && (
+                                            <div className="text-sm text-amber-400 mt-2 p-2 bg-amber-900/20 border border-amber-900/40 rounded italic animate-in fade-in slide-in-from-top-1">
+                                                💡 {turn.hintGiven}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Corrections (collapsible) */}
@@ -570,6 +614,6 @@ export default function RoleplayPage() {
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </AppLayout >
     );
 }
