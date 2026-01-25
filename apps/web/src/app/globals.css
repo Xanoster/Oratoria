@@ -2,16 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design Tokens - Dark Theme */
+/* Design Tokens - Light Green Theme */
 :root {
-    /* Colors */
-    --color-bg: #0A0E1A;
-    --color-surface: #0F1729;
-    --color-text: #FFFFFF;
-    --color-muted: #94A3B8;
-    --color-accent: #3B82F6;
+    /* Colors - Light Green Theme */
+    --color-bg: #F0FDF4;
+    --color-surface: #FEFFFE;
+    --color-surface-hover: #F0FDF4;
+    --color-border: #E2E8E5;
+    --color-text: #1A1F1E;
+    --color-text-secondary: #5C6662;
+    --color-muted: #8A9691;
+    --color-accent: #22C55E;
+    --color-accent-dark: #16A34A;
+    --color-accent-light: #BBF7D0;
+    --color-accent-bg: #F0FDF4;
     --color-error: #EF4444;
-    --color-success: #10B981;
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-info: #3B82F6;
+
+    /* Sidebar */
+    --sidebar-bg: #FFFFFF;
+    --sidebar-hover: #F0FDF4;
+    --sidebar-active: #22C55E;
 
     /* Spacing */
     --spacing-1: 4px;
@@ -38,11 +51,12 @@
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
+    --radius-xl: 16px;
     --radius-full: 9999px;
 
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
     /* Layout */
@@ -70,7 +84,7 @@ body {
     font-size: var(--font-body);
     line-height: var(--line-body);
     color: var(--color-text);
-    background-color: #0A0E1A;
+    background-color: var(--color-bg);
     min-height: 100vh;
 }
 

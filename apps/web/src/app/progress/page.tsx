@@ -235,7 +235,7 @@ export default function ProgressPage() {
             <AppLayout>
                 <main className="min-h-screen p-6">
                     <div className="max-w-4xl mx-auto">
-                        <div className="text-center py-12 text-slate-400">
+                        <div className="text-center py-12 text-gray-500">
                             Analyzing your performance data...
                         </div>
                     </div>
@@ -250,30 +250,30 @@ export default function ProgressPage() {
                 <div className="max-w-4xl mx-auto space-y-6">
                     {/* Header */}
                     <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-white mb-2">Diagnostic Report</h1>
-                        <p className="text-slate-400">Evidence-based analysis of your German speaking ability</p>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Diagnostic Report</h1>
+                        <p className="text-gray-500">Evidence-based analysis of your German speaking ability</p>
                     </div>
 
                     {/* CEFR Level */}
                     {cefrData && (
-                        <div className="bg-[#0F1729] border border-[#1E293B] rounded-xl p-6">
+                        <div className="bg-white border border-gray-200 rounded-xl p-6">
                             <div className="flex items-start justify-between mb-4">
                                 <div>
-                                    <h2 className="text-lg font-semibold text-white mb-1">CEFR Level</h2>
-                                    <div className="text-3xl font-bold text-blue-400">{cefrData.suggestedLevel}</div>
+                                    <h2 className="text-lg font-semibold text-gray-900 mb-1">CEFR Level</h2>
+                                    <div className="text-3xl font-bold text-emerald-600">{cefrData.suggestedLevel}</div>
                                 </div>
-                                <div className="text-xs px-3 py-1 rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
+                                <div className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
                                     {Math.round(cefrData.confidence * 100)}% confidence
                                 </div>
                             </div>
 
                             <div className="space-y-4">
                                 <div>
-                                    <div className="text-sm font-medium text-slate-300 mb-2">What this means</div>
+                                    <div className="text-sm font-medium text-gray-600 mb-2">What this means</div>
                                     <div className="space-y-1">
                                         {cefrData.reasons.map((reason, i) => (
-                                            <div key={i} className="text-sm text-slate-400 flex items-start gap-2">
-                                                <CheckCircle2 className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                                            <div key={i} className="text-sm text-gray-500 flex items-start gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                                                 <span>{reason}</span>
                                             </div>
                                         ))}
@@ -306,9 +306,9 @@ export default function ProgressPage() {
                                     </div>
                                 )}
 
-                                <div className="pt-4 border-t border-[#1E293B]">
-                                    <div className="text-sm font-medium text-white mb-2">Next action</div>
-                                    <div className="text-sm text-slate-300">
+                                <div className="pt-4 border-t border-gray-200">
+                                    <div className="text-sm font-medium text-gray-900 mb-2">Next action</div>
+                                    <div className="text-sm text-gray-600">
                                         {cefrData.weaknesses.length > 0
                                             ? `Focus on ${cefrData.weaknesses[0].toLowerCase()
                                             } through targeted practice sessions.`
@@ -321,12 +321,12 @@ export default function ProgressPage() {
 
                     {/* Speaking Clarity Trend */}
                     {clarityTrend && (
-                        <div className="bg-[#0F1729] border border-[#1E293B] rounded-xl p-6">
+                        <div className="bg-white border border-gray-200 rounded-xl p-6">
                             <div className="flex items-start justify-between mb-4">
-                                <h2 className="text-lg font-semibold text-white">Speaking Clarity Trend</h2>
+                                <h2 className="text-lg font-semibold text-gray-900">Speaking Clarity Trend</h2>
                                 <div className={`flex items - center gap - 2 text - sm ${clarityTrend.direction === 'improving' ? 'text-green-400' :
                                         clarityTrend.direction === 'declining' ? 'text-red-400' :
-                                            'text-slate-400'
+                                            'text-gray-500'
                                     } `}>
                                     {clarityTrend.direction === 'improving' && <TrendingUp className="h-4 w-4" />}
                                     {clarityTrend.direction === 'declining' && <TrendingDown className="h-4 w-4" />}
@@ -342,10 +342,10 @@ export default function ProgressPage() {
                                         {clarityTrend.dataPoints.map((point, i) => (
                                             <div
                                                 key={i}
-                                                className="flex-1 bg-blue-600/30 rounded-t relative group"
+                                                className="flex-1 bg-emerald-500/30 rounded-t relative group"
                                                 style={{ height: `${point.score}% ` }}
                                             >
-                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black/90 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
+                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black/90 text-gray-900 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none">
                                                     {point.score}%
                                                 </div>
                                             </div>
@@ -354,38 +354,38 @@ export default function ProgressPage() {
                                 )}
 
                                 <div>
-                                    <div className="text-sm font-medium text-slate-300 mb-2">What this means</div>
-                                    <div className="text-sm text-slate-400">{clarityTrend.explanation}</div>
+                                    <div className="text-sm font-medium text-gray-600 mb-2">What this means</div>
+                                    <div className="text-sm text-gray-500">{clarityTrend.explanation}</div>
                                 </div>
 
-                                <div className="pt-4 border-t border-[#1E293B]">
-                                    <div className="text-sm font-medium text-white mb-2">Next action</div>
-                                    <div className="text-sm text-slate-300">{clarityTrend.suggestedAction}</div>
+                                <div className="pt-4 border-t border-gray-200">
+                                    <div className="text-sm font-medium text-gray-900 mb-2">Next action</div>
+                                    <div className="text-sm text-gray-600">{clarityTrend.suggestedAction}</div>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Top 3 Recurring Errors */}
-                    <div className="bg-[#0F1729] border border-[#1E293B] rounded-xl p-6">
-                        <h2 className="text-lg font-semibold text-white mb-4">Top Recurring Errors</h2>
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Recurring Errors</h2>
 
                         {topErrors.length === 0 ? (
-                            <div className="text-center py-8 text-slate-400">
+                            <div className="text-center py-8 text-gray-500">
                                 No recurring error patterns detected yet. Complete more speaking tasks to identify areas for improvement.
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 {topErrors.map((error, i) => (
-                                    <div key={i} className="bg-[#1E293B] rounded-lg p-4">
+                                    <div key={i} className="bg-gray-100 rounded-lg p-4">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-amber-600/20 text-amber-400 flex items-center justify-center text-sm font-bold">
                                                     {i + 1}
                                                 </div>
                                                 <div>
-                                                    <div className="text-white font-medium capitalize">{error.type} error</div>
-                                                    <div className="text-xs text-slate-400">Occurred {error.count} times</div>
+                                                    <div className="text-gray-900 font-medium capitalize">{error.type} error</div>
+                                                    <div className="text-xs text-gray-500">Occurred {error.count} times</div>
                                                 </div>
                                             </div>
                                             <AlertCircle className="h-5 w-5 text-amber-400" />
@@ -394,10 +394,10 @@ export default function ProgressPage() {
                                         <div className="space-y-3">
                                             {error.examples.length > 0 && (
                                                 <div>
-                                                    <div className="text-xs font-medium text-slate-400 mb-1">Examples</div>
+                                                    <div className="text-xs font-medium text-gray-500 mb-1">Examples</div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {error.examples.map((example, idx) => (
-                                                            <span key={idx} className="text-xs px-2 py-1 rounded bg-[#0F1729] text-slate-300">
+                                                            <span key={idx} className="text-xs px-2 py-1 rounded bg-white text-gray-600">
                                                                 {example}
                                                             </span>
                                                         ))}
@@ -406,13 +406,13 @@ export default function ProgressPage() {
                                             )}
 
                                             <div>
-                                                <div className="text-xs font-medium text-slate-300 mb-1">What this means</div>
-                                                <div className="text-xs text-slate-400">{error.explanation}</div>
+                                                <div className="text-xs font-medium text-gray-600 mb-1">What this means</div>
+                                                <div className="text-xs text-gray-500">{error.explanation}</div>
                                             </div>
 
-                                            <div className="pt-2 border-t border-[#2D3B4F]">
-                                                <div className="text-xs font-medium text-white mb-1">Next action</div>
-                                                <div className="text-xs text-slate-300">{error.suggestedAction}</div>
+                                            <div className="pt-2 border-t border-gray-300">
+                                                <div className="text-xs font-medium text-gray-900 mb-1">Next action</div>
+                                                <div className="text-xs text-gray-600">{error.suggestedAction}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -425,7 +425,7 @@ export default function ProgressPage() {
                     <div className="text-center pt-6">
                         <Link
                             href="/learn"
-                            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all"
+                            className="inline-block bg-emerald-500 text-gray-900 px-6 py-3 rounded-lg hover:bg-emerald-600 transition-all"
                         >
                             Continue Learning
                         </Link>

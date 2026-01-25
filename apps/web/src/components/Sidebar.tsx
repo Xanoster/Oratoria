@@ -3,15 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Sparkles, Play, RefreshCw, Mic, Users, TrendingUp, Settings, User } from 'lucide-react';
+import { Home, Play, RefreshCw, Mic, Users, TrendingUp, Settings, User, BookOpen } from 'lucide-react';
 import { useAuth, getAvatarUrl } from '@/lib/auth';
 
 const navItems = [
-    { href: '/learn', label: 'Learn', icon: Play },
-    { href: '/review', label: 'Review', icon: RefreshCw },
-    { href: '/speak', label: 'Speak', icon: Mic },
-    { href: '/roleplay', label: 'Roleplay', icon: Users },
-    { href: '/progress', label: 'Progress', icon: TrendingUp },
+    { href: '/learn', label: 'Home', icon: Home },
+    { href: '/learn/lessons', label: 'Learn', icon: Play },
+    { href: '/vocabulary', label: 'Vocabulary', icon: BookOpen },
+    { href: '/speak', label: 'Practice', icon: Mic },
+    { href: '/profile', label: 'Profile', icon: User },
 ];
 
 export default function Sidebar() {
@@ -30,20 +30,22 @@ export default function Sidebar() {
         : 'User';
 
     return (
-        <aside className="sticky top-0 h-screen w-64 bg-[#0A0E1A] border-r border-[#1E293B] flex flex-col z-40 flex-none">
+        <aside className="sticky top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-40 flex-none">
             {/* Logo */}
-            <Link href="/learn" className="flex items-center gap-3 px-6 py-5 border-b border-[#1E293B]">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-white" />
+            <Link href="/learn" className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">O</span>
                 </div>
-                <span className="text-lg font-bold text-white">Oratoria</span>
+                <span className="text-lg font-bold text-gray-900">Oratoria</span>
             </Link>
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4">
                 <ul className="space-y-1">
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                        const isActive = pathname === item.href ||
+                            (item.href !== '/learn' && pathname.startsWith(item.href + '/')) ||
+                            (item.href === '/learn' && pathname === '/learn');
                         const Icon = item.icon;
 
                         return (
@@ -51,8 +53,8 @@ export default function Sidebar() {
                                 <Link
                                     href={item.href}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                                        ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-[#0F1729]'
+                                        ? 'bg-emerald-50 text-emerald-600'
+                                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                         }`}
                                 >
                                     <Icon className="h-5 w-5" />
@@ -63,41 +65,6 @@ export default function Sidebar() {
                     })}
                 </ul>
             </nav>
-
-            {/* Bottom Section */}
-            <div className="px-3 py-4 border-t border-[#1E293B] space-y-2">
-                {/* Settings */}
-                <Link
-                    href="/settings"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${pathname === '/settings'
-                        ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                        : 'text-slate-400 hover:text-white hover:bg-[#0F1729]'
-                        }`}
-                >
-                    <Settings className="h-5 w-5" />
-                    <span className="font-medium">Settings</span>
-                </Link>
-
-                {/* User Profile */}
-                <Link
-                    href="/profile"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${pathname === '/profile'
-                        ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                        : 'text-slate-400 hover:text-white hover:bg-[#0F1729]'
-                        }`}
-                >
-                    {avatarUrl ? (
-                        <img
-                            src={avatarUrl}
-                            alt="Profile"
-                            className="w-6 h-6 rounded-full bg-[#1E293B]"
-                        />
-                    ) : (
-                        <User className="h-5 w-5" />
-                    )}
-                    <span className="font-medium truncate">{userName}</span>
-                </Link>
-            </div>
         </aside>
     );
 }

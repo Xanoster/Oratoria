@@ -324,7 +324,7 @@ export default function ReviewPage() {
         return (
             <AppLayout>
                 <main className="min-h-screen flex items-center justify-center">
-                    <div className="text-slate-400">Loading reviews...</div>
+                    <div className="text-gray-500">Loading reviews...</div>
                 </main>
             </AppLayout>
         );
@@ -336,9 +336,9 @@ export default function ReviewPage() {
                 <main className="min-h-screen flex items-center justify-center">
                     <div className="text-center">
                         <div className="text-6xl mb-4">✨</div>
-                        <h1 className="text-2xl font-bold text-white mb-2">All caught up!</h1>
-                        <p className="text-slate-400 mb-6">No items due for review right now.</p>
-                        <Link href="/learn" className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">All caught up!</h1>
+                        <p className="text-gray-500 mb-6">No items due for review right now.</p>
+                        <Link href="/learn" className="inline-block bg-emerald-500 text-gray-900 px-6 py-3 rounded-lg hover:bg-emerald-600 transition-all">
                             Back to learning
                         </Link>
                     </div>
@@ -353,12 +353,12 @@ export default function ReviewPage() {
                 <main className="min-h-screen flex items-center justify-center">
                     <div className="text-center">
                         <div className="text-6xl mb-4">🎉</div>
-                        <h1 className="text-2xl font-bold text-white mb-2">Review Complete!</h1>
-                        <p className="text-slate-400 mb-2">You reviewed {items.length} items.</p>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Review Complete!</h1>
+                        <p className="text-gray-500 mb-2">You reviewed {items.length} items.</p>
                         {pendingSyncCount > 0 && (
                             <p className="text-amber-400 text-sm mb-6">📡 {pendingSyncCount} responses will sync when online</p>
                         )}
-                        <Link href="/learn" className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+                        <Link href="/learn" className="inline-block bg-emerald-500 text-gray-900 px-6 py-3 rounded-lg hover:bg-emerald-600 transition-all">
                             Continue learning
                         </Link>
                     </div>
@@ -384,7 +384,7 @@ export default function ReviewPage() {
                 <div className="max-w-2xl mx-auto">
                     {/* Header */}
                     <header className="flex items-center justify-between mb-6">
-                        <Link href="/learn" className="text-slate-400 hover:text-white transition-all">
+                        <Link href="/learn" className="text-gray-500 hover:text-gray-900 transition-all">
                             ← Back
                         </Link>
                         <div className="flex items-center gap-4">
@@ -394,7 +394,7 @@ export default function ReviewPage() {
                                     Offline ({pendingSyncCount} pending)
                                 </div>
                             )}
-                            <div className="text-slate-400 text-sm">
+                            <div className="text-gray-500 text-sm">
                                 {currentIndex + 1} / {items.length}
                             </div>
                         </div>
@@ -402,19 +402,19 @@ export default function ReviewPage() {
 
                     {/* Progress bar */}
                     <div className="mb-6">
-                        <div className="h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-blue-600 transition-all"
+                                className="h-full bg-emerald-500 transition-all"
                                 style={{ width: `${((currentIndex + 1) / items.length) * 100}%` }}
                             />
                         </div>
                     </div>
 
                     {/* Card */}
-                    <div className="bg-[#0F1729] border border-[#1E293B] rounded-2xl p-8">
+                    <div className="bg-white border border-gray-200 rounded-2xl p-8">
                         {/* Type badge */}
                         <div className="flex items-center justify-between mb-6">
-                            <span className="text-xs px-3 py-1 rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
+                            <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
                                 {item.type.replace('_', ' ')}
                             </span>
                             {item.failureCount >= 2 && (
@@ -425,7 +425,7 @@ export default function ReviewPage() {
                         </div>
 
                         {/* Question */}
-                        <div className="text-xl text-white mb-8 font-medium">
+                        <div className="text-xl text-gray-900 mb-8 font-medium">
                             {item.content.question}
                         </div>
 
@@ -437,13 +437,13 @@ export default function ReviewPage() {
                                         onClick={() => isListening ? stopRecording() : startRecording()}
                                         disabled={loading}
                                         className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${isListening
-                                            ? 'bg-red-600 text-white shadow-lg shadow-red-600/50 scale-110'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105'
+                                            ? 'bg-red-600 text-gray-900 shadow-lg shadow-red-600/50 scale-110'
+                                            : 'bg-emerald-500 text-gray-900 hover:bg-emerald-600 hover:scale-105'
                                             }`}
                                     >
                                         {isListening ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
                                     </button>
-                                    <p className="text-sm text-slate-400">
+                                    <p className="text-sm text-gray-500">
                                         {isListening ? 'Listening...' : item.requiresSpoken ? 'Speak your answer' : 'Tap to speak'}
                                     </p>
                                 </div>
@@ -451,14 +451,14 @@ export default function ReviewPage() {
                                 {/* Text input as fallback */}
                                 {!item.requiresSpoken && (
                                     <>
-                                        <div className="text-center text-xs text-slate-500">or type</div>
+                                        <div className="text-center text-xs text-gray-400">or type</div>
                                         <input
                                             type="text"
                                             value={userAnswer}
                                             onChange={(e) => setUserAnswer(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && userAnswer.trim() && evaluateAnswer(userAnswer)}
                                             placeholder="Type your answer"
-                                            className="w-full bg-[#1E293B] border border-[#2D3B4F] rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-600"
+                                            className="w-full bg-gray-100 border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                                             disabled={isListening}
                                         />
                                     </>
@@ -467,7 +467,7 @@ export default function ReviewPage() {
                                 {userAnswer && !isListening && (
                                     <button
                                         onClick={() => evaluateAnswer(userAnswer)}
-                                        className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition-all"
+                                        className="w-full bg-emerald-500 text-gray-900 rounded-lg px-4 py-3 font-medium hover:bg-emerald-600 transition-all"
                                     >
                                         Check Answer
                                     </button>
@@ -477,12 +477,12 @@ export default function ReviewPage() {
                             <div className="space-y-6">
                                 {/* Correct answer */}
                                 <div>
-                                    <div className="text-sm text-slate-400 mb-2">Correct answer:</div>
+                                    <div className="text-sm text-gray-500 mb-2">Correct answer:</div>
                                     <div className="text-lg text-green-400 font-medium flex items-center gap-2">
                                         {item.content.answer}
                                         <button
                                             onClick={() => speak(item.content.answer)}
-                                            className="text-slate-400 hover:text-white transition-all"
+                                            className="text-gray-500 hover:text-gray-900 transition-all"
                                             disabled={isSpeaking}
                                         >
                                             <Volume2 className="h-5 w-5" />
@@ -493,8 +493,8 @@ export default function ReviewPage() {
                                 {/* User answer */}
                                 {userAnswer && (
                                     <div>
-                                        <div className="text-sm text-slate-400 mb-2">Your answer:</div>
-                                        <div className="text-lg text-white">{userAnswer}</div>
+                                        <div className="text-sm text-gray-500 mb-2">Your answer:</div>
+                                        <div className="text-lg text-gray-900">{userAnswer}</div>
                                     </div>
                                 )}
 
@@ -515,12 +515,12 @@ export default function ReviewPage() {
 
                                 {/* Explanation (shown after 2+ failures) */}
                                 {item.failureCount >= 2 && item.explanation && (
-                                    <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4">
+                                    <div className="bg-blue-900/20 border border-emerald-500/30 rounded-lg p-4">
                                         <div className="flex items-start gap-2">
-                                            <Lightbulb className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                                            <Lightbulb className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                                             <div>
-                                                <div className="text-sm font-medium text-blue-400 mb-1">Explanation</div>
-                                                <div className="text-sm text-slate-300">{item.explanation}</div>
+                                                <div className="text-sm font-medium text-emerald-600 mb-1">Explanation</div>
+                                                <div className="text-sm text-gray-600">{item.explanation}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -528,7 +528,7 @@ export default function ReviewPage() {
 
                                 <button
                                     onClick={showPronunciationModal ? () => { } : submitResponse}
-                                    className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition-all"
+                                    className="w-full bg-emerald-500 text-gray-900 rounded-lg px-4 py-3 font-medium hover:bg-emerald-600 transition-all"
                                 >
                                     {showPronunciationModal ? 'Practice pronunciations first' : 'Continue'}
                                 </button>

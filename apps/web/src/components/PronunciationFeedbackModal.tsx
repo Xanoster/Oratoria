@@ -72,15 +72,15 @@ function PracticeStep({ error, onSpeak, onComplete }: PracticeStepProps) {
     };
 
     return (
-        <div className="p-4 rounded-xl bg-[#0A0F1C] border border-[#1E293B]">
+        <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
             {/* Word with Highlight */}
             <div className="mb-4">
                 <span className="text-lg font-medium text-amber-400">{error.word}</span>
-                <span className="ml-2 text-sm text-slate-500">{error.phoneme}</span>
+                <span className="ml-2 text-sm text-gray-400">{error.phoneme}</span>
             </div>
 
             {/* Phoneme Tip */}
-            <p className="text-sm text-slate-400 mb-4">{error.tip}</p>
+            <p className="text-sm text-gray-500 mb-4">{error.tip}</p>
 
             {/* Listen → Record → Compare Loop */}
             <div className="flex gap-2">
@@ -90,10 +90,10 @@ function PracticeStep({ error, onSpeak, onComplete }: PracticeStepProps) {
                     className={`
                         flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all
                         ${step === 'listen'
-                            ? 'bg-blue-600 text-white'
+                            ? 'bg-emerald-500 text-gray-900'
                             : hasListened
                                 ? 'bg-green-600/20 text-green-400 border border-green-600/30'
-                                : 'bg-[#1E293B] text-slate-400'
+                                : 'bg-gray-100 text-gray-500'
                         }
                     `}
                 >
@@ -111,12 +111,12 @@ function PracticeStep({ error, onSpeak, onComplete }: PracticeStepProps) {
                     className={`
                         flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all
                         ${!hasListened
-                            ? 'bg-[#1E293B] text-slate-600 cursor-not-allowed'
+                            ? 'bg-gray-100 text-slate-600 cursor-not-allowed'
                             : step === 'record'
-                                ? 'bg-red-600 text-white animate-pulse'
+                                ? 'bg-red-600 text-gray-900 animate-pulse'
                                 : hasRecorded
                                     ? 'bg-green-600/20 text-green-400 border border-green-600/30'
-                                    : 'bg-[#1E293B] text-slate-400 hover:bg-[#2D3B4F]'
+                                    : 'bg-gray-100 text-gray-500 hover:bg-[#2D3B4F]'
                         }
                     `}
                 >
@@ -131,8 +131,8 @@ function PracticeStep({ error, onSpeak, onComplete }: PracticeStepProps) {
                     className={`
                         flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-all
                         ${!hasRecorded
-                            ? 'bg-[#1E293B] text-slate-600 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700 text-white'
+                            ? 'bg-gray-100 text-slate-600 cursor-not-allowed'
+                            : 'bg-green-600 hover:bg-green-700 text-gray-900'
                         }
                     `}
                 >
@@ -178,7 +178,7 @@ export default function PronunciationFeedbackModal({
         return (
             <span
                 key={i}
-                className={isError ? 'text-amber-400 font-medium' : 'text-slate-300'}
+                className={isError ? 'text-amber-400 font-medium' : 'text-gray-600'}
             >
                 {word}{' '}
             </span>
@@ -205,15 +205,15 @@ export default function PronunciationFeedbackModal({
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#0F1729] border border-[#1E293B] rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-[#1E293B]">
-                    <h3 className="text-lg font-semibold text-white">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900">
                         {needsRetry ? 'Try Again' : errorsToShow.length > 0 ? 'Practice These' : 'Continue'}
                     </h3>
                     <button
                         onClick={onClose}
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className="text-gray-500 hover:text-gray-900 transition-colors"
                     >
                         <X size={20} />
                     </button>
@@ -232,7 +232,7 @@ export default function PronunciationFeedbackModal({
                     {/* Highlighted Expected Text */}
                     {!needsRetry && errorsToShow.length > 0 && (
                         <div className="mb-6">
-                            <p className="text-sm text-slate-500 mb-2">Your phrase:</p>
+                            <p className="text-sm text-gray-400 mb-2">Your phrase:</p>
                             <p className="text-base">{highlightedText}</p>
                         </div>
                     )}
@@ -241,7 +241,7 @@ export default function PronunciationFeedbackModal({
                     {!needsRetry && errorsToShow.length > 0 && (
                         <div className="mb-6">
                             <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm text-slate-400">
+                                <p className="text-sm text-gray-500">
                                     Word {currentErrorIndex + 1} of {errorsToShow.length}
                                 </p>
                                 <div className="flex gap-1">
@@ -273,14 +273,14 @@ export default function PronunciationFeedbackModal({
                             <div className="w-12 h-12 rounded-full bg-green-600/20 border border-green-600/30 flex items-center justify-center mx-auto mb-3">
                                 <Check size={24} className="text-green-400" />
                             </div>
-                            <p className="text-slate-300">Pronunciation is clear.</p>
+                            <p className="text-gray-600">Pronunciation is clear.</p>
                         </div>
                     )}
 
                     {/* Scores - Hidden by Default */}
                     <button
                         onClick={() => setShowScores(!showScores)}
-                        className="w-full flex items-center justify-between py-2 text-sm text-slate-500 hover:text-slate-400 transition-colors"
+                        className="w-full flex items-center justify-between py-2 text-sm text-gray-400 hover:text-gray-500 transition-colors"
                     >
                         <span>View detailed scores</span>
                         <ChevronDown
@@ -290,19 +290,19 @@ export default function PronunciationFeedbackModal({
                     </button>
 
                     {showScores && (
-                        <div className="mt-2 p-4 rounded-lg bg-[#0A0F1C] border border-[#1E293B]">
+                        <div className="mt-2 p-4 rounded-lg bg-gray-50 border border-gray-200">
                             <div className="grid grid-cols-3 gap-4 text-center text-sm">
                                 <div>
-                                    <p className="text-slate-500">Pronunciation</p>
-                                    <p className="text-white font-medium">{Math.round(evaluationResult.pronunciationScore)}</p>
+                                    <p className="text-gray-400">Pronunciation</p>
+                                    <p className="text-gray-900 font-medium">{Math.round(evaluationResult.pronunciationScore)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-slate-500">Grammar</p>
-                                    <p className="text-white font-medium">{Math.round(evaluationResult.grammarScore)}</p>
+                                    <p className="text-gray-400">Grammar</p>
+                                    <p className="text-gray-900 font-medium">{Math.round(evaluationResult.grammarScore)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-slate-500">Fluency</p>
-                                    <p className="text-white font-medium">{Math.round(evaluationResult.fluencyScore)}</p>
+                                    <p className="text-gray-400">Fluency</p>
+                                    <p className="text-gray-900 font-medium">{Math.round(evaluationResult.fluencyScore)}</p>
                                 </div>
                             </div>
                         </div>
@@ -310,19 +310,19 @@ export default function PronunciationFeedbackModal({
                 </div>
 
                 {/* Actions */}
-                <div className="p-6 border-t border-[#1E293B]">
+                <div className="p-6 border-t border-gray-200">
                     {needsRetry ? (
                         <div className="flex gap-3">
                             <button
                                 onClick={onRetry}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg bg-amber-600 hover:bg-amber-700 text-gray-900 font-medium transition-colors"
                             >
                                 <RefreshCw size={16} />
                                 Try Again
                             </button>
                             <button
                                 onClick={onContinue}
-                                className="flex-1 py-3 rounded-lg bg-[#1E293B] hover:bg-[#2D3B4F] text-slate-300 font-medium transition-colors"
+                                className="flex-1 py-3 rounded-lg bg-gray-100 hover:bg-[#2D3B4F] text-gray-600 font-medium transition-colors"
                             >
                                 Skip
                             </button>
@@ -334,8 +334,8 @@ export default function PronunciationFeedbackModal({
                             className={`
                                 w-full py-3 rounded-lg font-medium transition-colors
                                 ${errorsToShow.length > 0 && !allPracticed
-                                    ? 'bg-[#1E293B] text-slate-500 cursor-not-allowed'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-emerald-500 hover:bg-emerald-600 text-gray-900'
                                 }
                             `}
                         >

@@ -4,14 +4,15 @@
     align-items: center;
     justify-content: center;
     padding: var(--spacing-4);
-    background: linear-gradient(180deg, #EEF2FF 0%, var(--color-bg) 100%);
+    background: linear-gradient(180deg, #F0FDF4 0%, #F8FAF9 100%);
 }
 
 .card {
-    background: var(--color-surface);
+    background: white;
     padding: var(--spacing-8);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid #E2E8E5;
     width: 100%;
     max-width: 420px;
 }
@@ -20,6 +21,7 @@
     text-align: center;
     margin-bottom: var(--spacing-2);
     font-size: 28px;
+    color: #1A1F1E;
 }
 
 .subtitle {
@@ -31,8 +33,8 @@
 
 .modeToggle {
     display: flex;
-    background: var(--color-bg);
-    border-radius: var(--radius-md);
+    background: #F0F5F3;
+    border-radius: var(--radius-lg);
     padding: var(--spacing-1);
     margin-bottom: var(--spacing-6);
 }
@@ -42,7 +44,7 @@
     padding: var(--spacing-3) var(--spacing-4);
     border: none;
     background: transparent;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     font-size: var(--font-body);
     font-weight: 500;
     cursor: pointer;
@@ -51,8 +53,8 @@
 }
 
 .modeBtn.active {
-    background: var(--color-surface);
-    color: var(--color-text);
+    background: white;
+    color: #22C55E;
     box-shadow: var(--shadow-sm);
 }
 

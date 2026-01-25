@@ -67,9 +67,9 @@ function CoachingModal({
 }) {
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#0F1729] border border-[#1E293B] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-                <h2 className="text-2xl font-bold text-white mb-2">📚 Coaching Session</h2>
-                <p className="text-slate-400 mb-6">Let's review your patterns and improve</p>
+            <div className="bg-white border border-gray-200 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">📚 Coaching Session</h2>
+                <p className="text-gray-500 mb-6">Let's review your patterns and improve</p>
 
                 {/* Total Errors */}
                 <div className="bg-amber-900/20 border border-amber-600/30 rounded-lg p-4 mb-6">
@@ -80,16 +80,16 @@ function CoachingModal({
                 {/* Error Breakdown */}
                 {Object.keys(coaching.errorsByType).length > 0 && (
                     <div className="mb-6">
-                        <h3 className="text-white font-semibold mb-3">Error Patterns</h3>
+                        <h3 className="text-gray-900 font-semibold mb-3">Error Patterns</h3>
                         <div className="space-y-2">
                             {Object.entries(coaching.errorsByType).map(([type, data]) => (
-                                <div key={type} className="bg-[#1E293B] rounded-lg p-3">
+                                <div key={type} className="bg-gray-100 rounded-lg p-3">
                                     <div className="flex justify-between items-center mb-2">
-                                        <span className="text-white font-medium">{type.replace('-', ' ')}</span>
+                                        <span className="text-gray-900 font-medium">{type.replace('-', ' ')}</span>
                                         <span className="text-amber-400 text-sm">×{data.count}</span>
                                     </div>
                                     {data.examples.length > 0 && (
-                                        <div className="text-xs text-slate-400 space-y-1">
+                                        <div className="text-xs text-gray-500 space-y-1">
                                             {data.examples.slice(0, 3).map((ex, i) => (
                                                 <div key={i}>• {ex}</div>
                                             ))}
@@ -104,10 +104,10 @@ function CoachingModal({
                 {/* Recommendations */}
                 {coaching.recommendations.length > 0 && (
                     <div className="mb-6">
-                        <h3 className="text-white font-semibold mb-3">💡 Recommendations</h3>
-                        <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4 space-y-2">
+                        <h3 className="text-gray-900 font-semibold mb-3">💡 Recommendations</h3>
+                        <div className="bg-blue-900/20 border border-emerald-500/30 rounded-lg p-4 space-y-2">
                             {coaching.recommendations.map((rec, i) => (
-                                <div key={i} className="text-slate-300 text-sm">{rec}</div>
+                                <div key={i} className="text-gray-600 text-sm">{rec}</div>
                             ))}
                         </div>
                     </div>
@@ -115,9 +115,9 @@ function CoachingModal({
 
                 {/* Practice Phrase */}
                 <div className="mb-6">
-                    <h3 className="text-white font-semibold mb-3">🎯 Practice This</h3>
-                    <div className="bg-[#1E293B] rounded-lg p-4">
-                        <div className="text-white text-lg font-medium">{coaching.practicePhrase}</div>
+                    <h3 className="text-gray-900 font-semibold mb-3">🎯 Practice This</h3>
+                    <div className="bg-gray-100 rounded-lg p-4">
+                        <div className="text-gray-900 text-lg font-medium">{coaching.practicePhrase}</div>
                     </div>
                 </div>
 
@@ -125,13 +125,13 @@ function CoachingModal({
                 <div className="flex gap-3">
                     <button
                         onClick={onResume}
-                        className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition-all"
+                        className="flex-1 bg-emerald-500 text-gray-900 rounded-lg px-4 py-3 font-medium hover:bg-emerald-600 transition-all"
                     >
                         Resume Conversation
                     </button>
                     <button
                         onClick={onClose}
-                        className="bg-[#1E293B] text-slate-400 rounded-lg px-4 py-3 hover:bg-[#2D3B4F] transition-all"
+                        className="bg-gray-100 text-gray-500 rounded-lg px-4 py-3 hover:bg-[#2D3B4F] transition-all"
                     >
                         Close
                     </button>
@@ -384,8 +384,8 @@ export default function RoleplayPage() {
             <AppLayout>
                 <div className="min-h-screen p-8">
                     <div className="max-w-3xl mx-auto">
-                        <h1 className="text-2xl font-bold text-white mb-2">🎭 Roleplay Scenarios</h1>
-                        <p className="text-slate-400 mb-8">Practice structured conversations with AI</p>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-2">🎭 Roleplay Scenarios</h1>
+                        <p className="text-gray-500 mb-8">Practice structured conversations with AI</p>
 
                         {error && (
                             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg mb-6 flex items-center justify-between">
@@ -400,11 +400,11 @@ export default function RoleplayPage() {
                         )}
 
                         {isLoading && !session ? (
-                            <div className="text-center text-slate-400 py-12">Starting session...</div>
+                            <div className="text-center text-gray-500 py-12">Starting session...</div>
                         ) : scenarios.length === 0 ? (
-                            <div className="text-center text-slate-400 py-12">
+                            <div className="text-center text-gray-500 py-12">
                                 <p className="mb-4">No scenarios available. Check console for errors.</p>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-gray-400">
                                     API URL: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}
                                 </p>
                             </div>
@@ -413,16 +413,16 @@ export default function RoleplayPage() {
                                 <button
                                     key={scenario.id}
                                     onClick={() => startSession(scenario.id)}
-                                    className="bg-[#0F1729] border border-[#1E293B] rounded-xl p-6 text-left hover:border-blue-600/50 hover:bg-[#0F1729]/80 transition-all"
+                                    className="bg-white border border-gray-200 rounded-xl p-6 text-left hover:border-emerald-500/50 hover:bg-white/80 transition-all"
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                        <h3 className="text-lg font-semibold text-white">{scenario.title}</h3>
-                                        <span className="text-xs px-2 py-1 rounded bg-blue-600/20 text-blue-400 border border-blue-600/30">
+                                        <h3 className="text-lg font-semibold text-gray-900">{scenario.title}</h3>
+                                        <span className="text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
                                             {scenario.level}
                                         </span>
                                     </div>
-                                    <p className="text-slate-400 text-sm mb-3">{scenario.context}</p>
-                                    <div className="flex gap-4 text-xs text-slate-500">
+                                    <p className="text-gray-500 text-sm mb-3">{scenario.context}</p>
+                                    <div className="flex gap-4 text-xs text-gray-400">
                                         <span>👤 You: {scenario.userRole}</span>
                                         <span>🤖 AI: {scenario.aiRole}</span>
                                     </div>
@@ -448,7 +448,7 @@ export default function RoleplayPage() {
 
             <div className="min-h-screen flex flex-col">
                 {/* Header */}
-                <div className="bg-[#0F1729] border-b border-[#1E293B] px-6 py-4">
+                <div className="bg-white border-b border-gray-200 px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button
@@ -457,13 +457,13 @@ export default function RoleplayPage() {
                                     setSession(null);
                                     stopRecording();
                                 }}
-                                className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-[#1E293B]"
+                                className="text-gray-500 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100"
                             >
                                 <ArrowLeft className="h-5 w-5" />
                             </button>
                             <div>
-                                <h1 className="text-lg font-semibold text-white">{session.scenario.title}</h1>
-                                <p className="text-sm text-slate-400">Turn {session.turns.length}</p>
+                                <h1 className="text-lg font-semibold text-gray-900">{session.scenario.title}</h1>
+                                <p className="text-sm text-gray-500">Turn {session.turns.length}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -490,7 +490,7 @@ export default function RoleplayPage() {
                             {/* User message */}
                             {turn.userMessage && (
                                 <div className="flex justify-end">
-                                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white">
+                                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-emerald-500 text-gray-900">
                                         <p>{turn.userMessage}</p>
                                     </div>
                                 </div>
@@ -499,15 +499,15 @@ export default function RoleplayPage() {
                             {/* AI response */}
                             <div className="flex justify-start">
                                 <div className="max-w-[80%] space-y-2">
-                                    <div className="rounded-2xl px-4 py-3 bg-[#1E293B] text-white">
+                                    <div className="rounded-2xl px-4 py-3 bg-gray-100 text-gray-900">
                                         <p className="text-base">{turn.aiResponse}</p>
                                         {visibleTranslations.has(turn.id) && turn.aiTranslation && (
-                                            <p className="text-sm text-slate-300 mt-1 opacity-70 italic border-t border-slate-700/50 pt-1">{turn.aiTranslation}</p>
+                                            <p className="text-sm text-gray-600 mt-1 opacity-70 italic border-t border-slate-700/50 pt-1">{turn.aiTranslation}</p>
                                         )}
                                         <div className="flex items-center gap-3 mt-2">
                                             <button
                                                 onClick={() => speak(turn.aiResponse)}
-                                                className="text-slate-400 hover:text-white flex items-center gap-1 text-xs transition-colors"
+                                                className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-xs transition-colors"
                                                 disabled={isSpeaking}
                                             >
                                                 <Volume2 className="h-3 w-3" />
@@ -516,7 +516,7 @@ export default function RoleplayPage() {
                                             {turn.aiTranslation && (
                                                 <button
                                                     onClick={() => toggleTranslation(turn.id)}
-                                                    className={`hover:text-white flex items-center gap-1 text-xs transition-colors ${visibleTranslations.has(turn.id) ? 'text-purple-400' : 'text-slate-400'
+                                                    className={`hover:text-gray-900 flex items-center gap-1 text-xs transition-colors ${visibleTranslations.has(turn.id) ? 'text-purple-400' : 'text-gray-500'
                                                         }`}
                                                 >
                                                     <Languages className="h-3 w-3" />
@@ -526,7 +526,7 @@ export default function RoleplayPage() {
                                             {i === session.turns.length - 1 && (
                                                 <button
                                                     onClick={getHint}
-                                                    className="text-slate-400 hover:text-amber-400 flex items-center gap-1 text-xs transition-colors"
+                                                    className="text-gray-500 hover:text-amber-400 flex items-center gap-1 text-xs transition-colors"
                                                     title="Get a hint"
                                                     disabled={isLoading}
                                                 >
@@ -564,7 +564,7 @@ export default function RoleplayPage() {
                                                         <div key={idx} className="text-sm">
                                                             <div className="text-red-400">❌ {corr.error}</div>
                                                             <div className="text-green-400">✓ {corr.correction}</div>
-                                                            <div className="text-slate-300 text-xs mt-1">{corr.explanation}</div>
+                                                            <div className="text-gray-600 text-xs mt-1">{corr.explanation}</div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -578,7 +578,7 @@ export default function RoleplayPage() {
 
                     {isLoading && (
                         <div className="flex justify-start">
-                            <div className="bg-[#1E293B] rounded-2xl px-4 py-3">
+                            <div className="bg-gray-100 rounded-2xl px-4 py-3">
                                 <div className="flex gap-1">
                                     <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
                                     <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -590,7 +590,7 @@ export default function RoleplayPage() {
                 </div>
 
                 {/* Input Area */}
-                <div className="bg-[#0F1729] border-t border-[#1E293B] p-4">
+                <div className="bg-white border-t border-gray-200 p-4">
                     <div className="flex gap-3">
                         <input
                             type="text"
@@ -598,15 +598,15 @@ export default function RoleplayPage() {
                             onChange={(e) => setInputText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && !isLoading && submitTurn(inputText)}
                             placeholder={isListening ? "Listening..." : "Type in German..."}
-                            className="flex-1 bg-[#1E293B] border border-[#2D3B4F] rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-all"
+                            className="flex-1 bg-gray-100 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
                             disabled={isListening || isLoading || session.status !== 'active'}
                         />
                         <button
                             onClick={() => isListening ? stopRecording() : startRecording()}
                             disabled={isLoading}
                             className={`p-3 rounded-xl transition-all ${isListening
-                                ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
-                                : 'bg-[#1E293B] text-slate-400 hover:text-white hover:bg-[#2D3B4F]'
+                                ? 'bg-red-600 text-gray-900 shadow-lg shadow-red-600/30'
+                                : 'bg-gray-100 text-gray-500 hover:text-gray-900 hover:bg-[#2D3B4F]'
                                 }`}
                         >
                             {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}

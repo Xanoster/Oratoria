@@ -302,9 +302,9 @@ export default function LessonPage() {
                                         <div key={i} className={styles.drillItem}>
                                             <div className={styles.drillWord}>{drill.word}</div>
                                             <div className={styles.drillPhonetic}>{drill.phonetic}</div>
-                                            <div className="text-slate-400 text-sm mb-4">{drill.tip}</div>
+                                            <div className="text-gray-500 text-sm mb-4">{drill.tip}</div>
                                             <button
-                                                className="flex items-center gap-2 px-4 py-2 bg-[#0F1729] border border-[#2D3B4F] hover:border-blue-600/50 hover:text-blue-400 rounded-lg text-sm text-slate-300 transition-all font-medium"
+                                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:border-emerald-500/50 hover:text-emerald-600 rounded-lg text-sm text-gray-600 transition-all font-medium"
                                                 onClick={() => speak(drill.word)}
                                             >
                                                 <Volume2 className="h-4 w-4" />
@@ -332,12 +332,12 @@ export default function LessonPage() {
                                 {/* Collapsible Grammar */}
                                 <button
                                     onClick={() => setShowGrammar(!showGrammar)}
-                                    className="w-full flex items-center justify-between p-4 rounded-lg bg-[#0F1729] border border-[#1E293B] text-left mb-4"
+                                    className="w-full flex items-center justify-between p-4 rounded-lg bg-white border border-gray-200 text-left mb-4"
                                 >
-                                    <span className="text-slate-300">{content.grammarNote.rule}</span>
+                                    <span className="text-gray-600">{content.grammarNote.rule}</span>
                                     <ChevronDown
                                         size={18}
-                                        className={`text-slate-400 transition-transform ${showGrammar ? 'rotate-180' : ''}`}
+                                        className={`text-gray-500 transition-transform ${showGrammar ? 'rotate-180' : ''}`}
                                     />
                                 </button>
 

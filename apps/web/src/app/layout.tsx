@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 import { ErrorBoundary } from '@/components/error';
+import { ToastProvider } from '@/components/ui/toast';
 import dynamic from 'next/dynamic';
 
 // Dynamic import to prevent hydration mismatch (uses browser APIs)
@@ -25,9 +26,10 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
-            <body className={`${inter.className} bg-[#0A0E1A] text-white`}>
+            <body className={`${inter.className} bg-[#F0FDF4] text-[#1A1F1E]`}>
                 <ErrorBoundary>
                     <AuthProvider>
+                        <ToastProvider />
                         <OfflineBanner />
                         {children}
                     </AuthProvider>
